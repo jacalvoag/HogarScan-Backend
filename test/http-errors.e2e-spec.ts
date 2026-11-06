@@ -1,9 +1,9 @@
 import { Controller, Get, HttpException, Param, Post } from '@nestjs/common';
-import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { configureJsonBody } from '../src/shared/http/configure-json-body.js';
 
 const privateDetail = 'PRIVATE_DETAIL_DO_NOT_EXPOSE';
 
@@ -30,7 +30,7 @@ class ErrorFixturesController {
 }
 
 describe('HTTP error responses (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: NestExpressApplication;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -38,9 +38,10 @@ describe('HTTP error responses (e2e)', () => {
       controllers: [ErrorFixturesController],
     }).compile();
 
-    app = moduleRef.createNestApplication<INestApplication<App>>({ 
+    app = moduleRef.createNestApplication<NestExpressApplication>({ 
         logger: false 
     });
+    configureJsonBody(app);
     await app.init();
   });
 
@@ -108,5 +109,39 @@ describe('HTTP error responses (e2e)', () => {
         code: 'INVALID_REQUEST',
         message: 'Revisa los datos enviados.',
       });
+  });
+
+  describe.each([
+    ['ASCII', 'a'.repeat(16_372)],
+    ['UTF-8', 'á'.repeat(8_186)],
+  ])('JSON body size (%s)', (_encoding, value) => {
+    const body = JSON.stringify({ value });
+
+    it('accepts exactly 16,384 bytes', async () => {
+      expect(Buffer.byteLength(body, 'utf8')).toBe(16_384);
+
+      await request(app.getHttpServer())
+        .post('/__test-errors/json')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .send(body)
+        .expect(201)
+        .expect({ ok: true });
+    });
+
+    it('rejects 16,385 bytes with the common error response', async () => {
+      const oversizedBody = `${body} `;
+      expect(Buffer.byteLength(oversizedBody, 'utf8')).toBe(16_385);
+
+      await request(app.getHttpServer())
+        .post('/__test-errors/json')
+        .set('Content-Type', 'application/json; charset=utf-8')
+        .send(oversizedBody)
+        .expect(413)
+        .expect('Cache-Control', 'no-store')
+        .expect({
+          code: 'PAYLOAD_TOO_LARGE',
+          message: 'La solicitud es demasiado grande.',
+        });
+    });
   });
 });
