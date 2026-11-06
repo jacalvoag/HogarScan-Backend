@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { configureJsonBody } from '../src/shared/http/configure-json-body.js';
+import { brotliCompressSync, deflateSync, gzipSync } from 'node:zlib';
 
 const privateDetail = 'PRIVATE_DETAIL_DO_NOT_EXPOSE';
 
@@ -42,7 +43,7 @@ describe('HTTP error responses (e2e)', () => {
         logger: false 
     });
     configureJsonBody(app);
-    await app.init();
+    await app.listen(0);
   });
 
   afterAll(async () => {
@@ -143,5 +144,41 @@ describe('HTTP error responses (e2e)', () => {
           message: 'La solicitud es demasiado grande.',
         });
     });
+  });
+
+  it.each([
+    ['gzip', gzipSync],
+    ['deflate', deflateSync],
+    ['br', brotliCompressSync],
+  ] as const)(
+    'rejects a JSON body compressed with %s',
+    async (encoding, compress) => {
+      const body = compress(Buffer.from('{"value":"test"}', 'utf8'));
+
+      const compressedRequest = request(app.getHttpServer())
+        .post('/__test-errors/json')
+        .set('Content-Type', 'application/json')
+        .set('Content-Encoding', encoding);
+
+      compressedRequest.write(body);
+
+      await compressedRequest
+        .expect(415)
+        .expect('Cache-Control', 'no-store')
+        .expect({
+          code: 'UNSUPPORTED_MEDIA_TYPE',
+          message: 'Formato de solicitud no admitido.',
+        });
+    },
+  );
+
+  it('accepts an uncompressed JSON body with identity encoding', async () => {
+    await request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Type', 'application/json')
+      .set('Content-Encoding', 'identity')
+      .send('{"value":"test"}')
+      .expect(201)
+      .expect({ ok: true });
   });
 });
