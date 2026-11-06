@@ -2,7 +2,7 @@ import { Controller, Get, HttpException, Param, Post } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import type { App } from 'supertest/types';
+import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 
 const privateDetail = 'PRIVATE_DETAIL_DO_NOT_EXPOSE';
@@ -38,7 +38,9 @@ describe('HTTP error responses (e2e)', () => {
       controllers: [ErrorFixturesController],
     }).compile();
 
-    app = moduleRef.createNestApplication<App>({ logger: false });
+    app = moduleRef.createNestApplication<INestApplication<App>>({ 
+        logger: false 
+    });
     await app.init();
   });
 
