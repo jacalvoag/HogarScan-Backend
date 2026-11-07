@@ -181,4 +181,54 @@ describe('HTTP error responses (e2e)', () => {
       .expect(201)
       .expect({ ok: true });
   });
+
+  it.each([
+    'application/json',
+    'application/json; charset=utf-8',
+    'Application/JSON; Charset="UTF-8"',
+  ])('accepts a JSON body with Content-Type %s', async (contentType) => {
+    await request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Type', contentType)
+      .send('{"value":"á"}')
+      .expect(201)
+      .expect({ ok: true });
+  });
+
+  it.each([
+    'text/plain',
+    'application/x-www-form-urlencoded',
+    'multipart/form-data; boundary=test',
+    'application/vnd.test+json',
+    'application/json; charset=utf-16le',
+    'application/json; charset=iso-8859-1',
+    'invalid-content-type',
+  ])('rejects a body with Content-Type %s', async (contentType) => {
+    await request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Type', contentType)
+      .send('{"value":"test"}')
+      .expect(415)
+      .expect('Cache-Control', 'no-store')
+      .expect({
+        code: 'UNSUPPORTED_MEDIA_TYPE',
+        message: 'Formato de solicitud no admitido.',
+      });
+  });
+
+  it('rejects a body without Content-Type', async () => {
+    const missingTypeRequest = request(app.getHttpServer()).post(
+      '/__test-errors/json',
+    );
+
+    missingTypeRequest.write('{"value":"test"}');
+
+    await missingTypeRequest
+      .expect(415)
+      .expect('Cache-Control', 'no-store')
+      .expect({
+        code: 'UNSUPPORTED_MEDIA_TYPE',
+        message: 'Formato de solicitud no admitido.',
+      });
+  });
 });
