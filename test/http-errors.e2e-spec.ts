@@ -40,7 +40,8 @@ describe('HTTP error responses (e2e)', () => {
     }).compile();
 
     app = moduleRef.createNestApplication<NestExpressApplication>({ 
-        logger: false 
+        logger: false,
+        rawBody: true,
     });
     configureJsonBody(app);
     await app.listen(0);
@@ -230,5 +231,40 @@ describe('HTTP error responses (e2e)', () => {
         code: 'UNSUPPORTED_MEDIA_TYPE',
         message: 'Formato de solicitud no admitido.',
       });
+  });
+
+  it.each([
+    ['isolated continuation byte', [0x80]],
+    ['truncated sequence', [0xc3]],
+    ['overlong sequence', [0xc0, 0xaf]],
+    ['surrogate encoding', [0xed, 0xa0, 0x80]],
+  ] as const)('rejects invalid UTF-8: %s', async (_description, bytes) => {
+    const body = Buffer.concat([
+      Buffer.from('{"value":"'),
+      Buffer.from(bytes),
+      Buffer.from('"}'),
+    ]);
+    const invalidRequest = request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Type', 'application/json; charset=utf-8');
+
+    invalidRequest.write(body);
+
+    await invalidRequest
+      .expect(400)
+      .expect('Cache-Control', 'no-store')
+      .expect({
+        code: 'INVALID_REQUEST',
+        message: 'Revisa los datos enviados.',
+      });
+  });
+
+  it('accepts valid UTF-8 including an explicit replacement character', async () => {
+    await request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Type', 'application/json; charset=utf-8')
+      .send(JSON.stringify({ value: 'á 🏠 \uFFFD' }))
+      .expect(201)
+      .expect({ ok: true });
   });
 });
