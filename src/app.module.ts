@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { validateEnvironment } from './config/environment.js';
 import { ApiExceptionFilter } from './shared/http/api-exception.filter.js';
+import { StrictSchemaValidationPipe } from './shared/http/strict-schema-validation.pipe.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ApiExceptionFilter } from './shared/http/api-exception.filter.js';
   providers: [
     AppService,
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
+    { provide: APP_PIPE, useClass: StrictSchemaValidationPipe },
   ],
 })
 export class AppModule {}
