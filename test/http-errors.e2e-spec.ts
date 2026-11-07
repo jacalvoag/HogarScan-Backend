@@ -267,4 +267,42 @@ describe('HTTP error responses (e2e)', () => {
       .expect(201)
       .expect({ ok: true });
   });
+
+  it.each([
+    '{"port":80,"port":443}',
+    '{"port":80,"port":80}',
+    '{"probe":{"port":80,"port":443}}',
+    '{"probes":[{"port":80,"port":443}]}',
+    String.raw`{"port":80,"\u0070ort":443}`,
+    String.raw`{"a\"b":1,"a\u0022b":2}`,
+    '{"__proto__":1,"__proto__":2}',
+    '\uFEFF{"port":80,"port":443}',
+  ])('rejects duplicate JSON keys: %s', async (body) => {
+    await request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Type', 'application/json')
+      .send(body)
+      .expect(400)
+      .expect('Cache-Control', 'no-store')
+      .expect({
+        code: 'INVALID_REQUEST',
+        message: 'Revisa los datos enviados.',
+      });
+  });
+
+  it.each([
+    '{"left":{"port":80},"right":{"port":443}}',
+    '{"probes":[{"port":80},{"port":443}]}',
+    '{"port":80,"Port":443}',
+    '{"__proto__":1,"constructor":2,"toString":3}',
+    JSON.stringify({ text: '"port":80,"port":443' }),
+    '\uFEFF{"port":80}',
+  ])('accepts JSON without duplicate keys: %s', async (body) => {
+    await request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Type', 'application/json')
+      .send(body)
+      .expect(201)
+      .expect({ ok: true });
+  });
 });
