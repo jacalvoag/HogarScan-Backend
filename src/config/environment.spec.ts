@@ -45,4 +45,12 @@ describe('validateEnvironment', () => {
       );
     },
   );
+
+  it('preserves variables needed by other configuration factories', () => {
+    expect(validateEnvironment({ PORT: '3000', DB_PORT: '5432' })).toEqual({
+      NODE_ENV: 'development',
+      PORT: 3000,
+      DB_PORT: '5432',
+    });
+  });
 });

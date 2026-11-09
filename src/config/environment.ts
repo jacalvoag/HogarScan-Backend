@@ -30,5 +30,5 @@ export function validateEnvironment(
     throw new Error('PORT debe ser un entero entre 1 y 65535.');
   }
 
-  return { NODE_ENV: nodeEnv, PORT: port };
+  return { ...values, NODE_ENV: nodeEnv, PORT: port };
 }
