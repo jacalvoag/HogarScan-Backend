@@ -1,6 +1,5 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import {
@@ -15,6 +14,7 @@ import type {
 import { SESSION_VERIFIER } from '../src/modules/auth/application/ports/session-verifier.port.js';
 import { VerifySession } from '../src/modules/auth/application/verify-session.js';
 import { Sha256SessionTokenHasher } from '../src/modules/auth/infrastructure/crypto/sha256-session-token-hasher.js';
+import { createHttpTestModule } from './helpers/create-http-test-module.js';
 
 // Rutas exclusivas de pruebas.
 @Controller('__test-identity')
@@ -43,7 +43,7 @@ describe('Current identity and session verification (e2e)', () => {
   const findByTokenHash = vi.fn<SessionReader['findByTokenHash']>();
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
+    const moduleRef = await createHttpTestModule({
       imports: [AppModule],
       controllers: [IdentityFixturesController],
       providers: [
