@@ -1,10 +1,10 @@
 import { Controller, Get, HttpException, Param, Post } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { configureJsonBody } from '../src/shared/http/configure-json-body.js';
 import { brotliCompressSync, deflateSync, gzipSync } from 'node:zlib';
+import { createHttpTestModule } from './helpers/create-http-test-module.js';
 
 const privateDetail = 'PRIVATE_DETAIL_DO_NOT_EXPOSE';
 
@@ -34,14 +34,14 @@ describe('HTTP error responses (e2e)', () => {
   let app: NestExpressApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
+    const moduleRef = await createHttpTestModule({
       imports: [AppModule],
       controllers: [ErrorFixturesController],
     }).compile();
 
-    app = moduleRef.createNestApplication<NestExpressApplication>({ 
-        logger: false,
-        rawBody: true,
+    app = moduleRef.createNestApplication<NestExpressApplication>({
+      logger: false,
+      rawBody: true,
     });
     configureJsonBody(app);
     await app.listen(0);

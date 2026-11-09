@@ -1,10 +1,10 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { z } from 'zod';
 import { AppModule } from '../src/app.module.js';
 import { configureJsonBody } from '../src/shared/http/configure-json-body.js';
+import { createHttpTestModule } from './helpers/create-http-test-module.js';
 
 const bodySchema = z.strictObject({
   label: z.string().min(1),
@@ -39,7 +39,7 @@ describe('Request schema validation (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
+    const moduleRef = await createHttpTestModule({
       imports: [AppModule],
       controllers: [ValidationFixturesController],
     }).compile();

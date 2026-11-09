@@ -6,6 +6,7 @@ import { AppService } from './app.service.js';
 import { validateEnvironment } from './config/environment.js';
 import { ApiExceptionFilter } from './shared/http/api-exception.filter.js';
 import { StrictSchemaValidationPipe } from './shared/http/strict-schema-validation.pipe.js';
+import { DatabaseModule } from './shared/database/database.module.js';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { StrictSchemaValidationPipe } from './shared/http/strict-schema-validati
       isGlobal: true,
       validate: validateEnvironment,
     }),
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [

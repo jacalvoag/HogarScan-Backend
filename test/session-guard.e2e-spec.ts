@@ -1,12 +1,12 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { SessionGuard } from '../src/modules/auth/auth.public.js';
 import type { AuthenticatedRequest } from '../src/modules/auth/auth.public.js';
 import { SESSION_VERIFIER } from '../src/modules/auth/application/ports/session-verifier.port.js';
 import type { SessionVerifier } from '../src/modules/auth/application/ports/session-verifier.port.js';
+import { createHttpTestModule } from './helpers/create-http-test-module.js';
 
 @Controller('__test-session')
 @UseGuards(SessionGuard)
@@ -24,7 +24,7 @@ describe('Session guard (e2e)', () => {
   const verify = vi.fn<SessionVerifier['verify']>();
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
+    const moduleRef = await createHttpTestModule({
       imports: [AppModule],
       controllers: [SessionFixturesController],
       providers: [
