@@ -1,7 +1,38 @@
 import { createTcpObservations, PILOT_PORTS } from './tcp-observations.js';
 import type { TcpObservation } from './tcp-observations.js';
+import { expectTypeOf } from 'vitest';
 
 describe('TCP observations', () => {
+  it('only allows compatible protocol evidence on accepted observations', () => {
+    expectTypeOf<{
+      port: 80;
+      outcome: 'ACCEPTED';
+      protocol: 'HTTP';
+      evidenceKind: 'HTTP_RESPONSE';
+    }>().toExtend<TcpObservation>();
+    expectTypeOf<{
+      port: 80;
+      outcome: 'ACCEPTED';
+      protocol: 'HTTP';
+    }>().not.toExtend<TcpObservation>();
+    expectTypeOf<{
+      port: 80;
+      outcome: 'ACCEPTED';
+      protocol: 'HTTP';
+      evidenceKind: 'SSH_IDENTIFICATION';
+    }>().not.toExtend<TcpObservation>();
+    expectTypeOf<{
+      port: 80;
+      outcome: 'TIMEOUT';
+      protocol: 'HTTP';
+      evidenceKind: 'HTTP_RESPONSE';
+    }>().not.toExtend<TcpObservation>();
+    expectTypeOf<{
+      port: 21;
+      outcome: 'ACCEPTED';
+    }>().not.toExtend<TcpObservation>();
+  });
+
   it('accepts all pilot ports with distinct outcomes and explicit evidence', () => {
     const observations: TcpObservation[] = [
       {
