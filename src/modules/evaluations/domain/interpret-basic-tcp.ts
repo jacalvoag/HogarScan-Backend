@@ -30,6 +30,24 @@ export function interpretBasicTcp(input: EvaluationInput): BasicInterpretation {
         ruleId: BASIC_RULE_IDS.accepted,
         cve: null,
       });
+
+      if (observation.protocol !== undefined) {
+        findings.push({
+          category: 'PROTOCOL_IDENTIFIED',
+          title: `Protocolo ${observation.protocol} identificado en el puerto ${observation.port}`,
+          priority: 'LOW',
+          confidence: 'OBSERVED',
+          evidence: `Se declaró evidencia ${observation.evidenceKind} para ${observation.protocol}.`,
+          explanation:
+            'La evidencia aportada identifica el protocolo, no un producto ni una vulnerabilidad.',
+          action:
+            'Verificar que el protocolo sea necesario y esté configurado de forma segura.',
+          limitation:
+            'La API interpreta la evidencia enviada y no certifica cómo se obtuvo.',
+          ruleId: BASIC_RULE_IDS.protocol,
+          cve: null,
+        });
+      }
     }
   }
 
