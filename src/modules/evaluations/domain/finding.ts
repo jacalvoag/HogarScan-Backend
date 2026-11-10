@@ -28,3 +28,15 @@ export type Finding = FindingDetails &
         readonly cve: null;
       }
   );
+
+/** Validates the identifier when a finding refers to a possible CVE. */
+export function createFinding(finding: Finding): Finding {
+  if (
+    finding.category === 'POSSIBLE_CVE_MATCH' &&
+    !/^CVE-[0-9]{4}-[0-9]{4,}$/.test(finding.cve)
+  ) {
+    throw new Error('Invalid CVE identifier');
+  }
+
+  return { ...finding };
+}
