@@ -2,6 +2,31 @@ import { BASIC_RULE_IDS, BASIC_RULESET_VERSION } from './basic-rules.js';
 import { createEvaluationInput } from './evaluation-input.js';
 import type { EvaluationInput } from './evaluation-input.js';
 import type { Finding } from './finding.js';
+import type { ProbeOutcome } from './tcp-observations.js';
+
+const INCONCLUSIVE_OUTCOMES: Record<
+  Exclude<ProbeOutcome, 'ACCEPTED'>,
+  { ruleId: string; description: string; limitation: string }
+> = {
+  REFUSED: {
+    ruleId: BASIC_RULE_IDS.refused,
+    description: 'El intento de conexión fue rechazado.',
+    limitation:
+      'Un rechazo no demuestra que el equipo o sus servicios estén libres de riesgos.',
+  },
+  TIMEOUT: {
+    ruleId: BASIC_RULE_IDS.timeout,
+    description: 'El intento de conexión agotó el tiempo de espera.',
+    limitation:
+      'Un tiempo de espera no demuestra que el equipo esté ausente ni que el puerto sea seguro.',
+  },
+  ERROR: {
+    ruleId: BASIC_RULE_IDS.error,
+    description: 'El intento de conexión terminó con un error.',
+    limitation:
+      'El error impide concluir si el servicio está disponible o es seguro.',
+  },
+};
 
 export interface BasicInterpretation {
   readonly rulesetVersion: string;
@@ -48,6 +73,22 @@ export function interpretBasicTcp(input: EvaluationInput): BasicInterpretation {
           cve: null,
         });
       }
+    } else {
+      const rule = INCONCLUSIVE_OUTCOMES[observation.outcome];
+      findings.push({
+        category: 'INSUFFICIENT_EVIDENCE',
+        title: `Resultado TCP inconcluso en el puerto ${observation.port}`,
+        priority: 'UNDETERMINED',
+        confidence: 'INCONCLUSIVE',
+        evidence: `${rule.description} Puerto ${observation.port}.`,
+        explanation:
+          'No se dispone de evidencia suficiente para valorar la seguridad del servicio.',
+        action:
+          'Revisar las condiciones de la prueba y repetirla si es necesario.',
+        limitation: rule.limitation,
+        ruleId: rule.ruleId,
+        cve: null,
+      });
     }
   }
 

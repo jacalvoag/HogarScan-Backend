@@ -3,6 +3,23 @@ import { interpretBasicTcp } from './interpret-basic-tcp.js';
 
 describe('Basic TCP interpretation', () => {
   it.each([
+    ['REFUSED', 'TCP_REFUSED', 'rechazado'],
+    ['TIMEOUT', 'TCP_TIMEOUT', 'tiempo de espera'],
+    ['ERROR', 'TCP_ERROR', 'error'],
+  ] as const)('keeps %s distinct and inconclusive', (outcome, ruleId, text) => {
+    const result = interpretBasicTcp({ observations: [{ port: 22, outcome }] });
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatchObject({
+      category: 'INSUFFICIENT_EVIDENCE',
+      confidence: 'INCONCLUSIVE',
+      priority: 'UNDETERMINED',
+      ruleId,
+      cve: null,
+    });
+    expect(result.findings[0]?.evidence).toContain(text);
+  });
+
+  it.each([
     { protocol: 'HTTP', evidenceKind: 'HTTP_RESPONSE' },
     { protocol: 'HTTPS', evidenceKind: 'HTTPS_RESPONSE' },
     { protocol: 'SSH', evidenceKind: 'SSH_IDENTIFICATION' },
