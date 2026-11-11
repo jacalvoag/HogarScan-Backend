@@ -6,6 +6,10 @@ const definitions = {
     status: HttpStatus.CONFLICT,
     message: 'El correo no está disponible.',
   },
+  INVALID_CREDENTIALS: {
+    status: HttpStatus.UNAUTHORIZED,
+    message: 'No se pudo iniciar sesión.',
+  },
 } as const;
 
 export class ApiException extends HttpException {

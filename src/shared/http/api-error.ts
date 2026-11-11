@@ -7,6 +7,7 @@ export interface ApiError {
     | 'RATE_LIMITED'
     | 'SERVICE_UNAVAILABLE'
     | 'INTERNAL_ERROR'
-    | 'EMAIL_ALREADY_REGISTERED';
+    | 'EMAIL_ALREADY_REGISTERED'
+    | 'INVALID_CREDENTIALS';
   message: string;
 }
