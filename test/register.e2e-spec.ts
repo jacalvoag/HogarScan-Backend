@@ -197,6 +197,7 @@ describe('Registration (e2e)', () => {
 
   it('limits registration attempts before hashing and includes Retry-After', async () => {
     const limitedApp = await createApp(true);
+    hash.mockClear();
 
     try {
       for (let index = 0; index < 5; index++) {
