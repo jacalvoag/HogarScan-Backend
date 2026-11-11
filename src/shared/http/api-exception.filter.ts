@@ -2,6 +2,7 @@ import { Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import type { ApiError } from './api-error.js';
+import { ApiException } from './api-exception.js';
 
 const invalidRequest: ApiError = {
   code: 'INVALID_REQUEST',
@@ -58,10 +59,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
     const body =
-      responses.get(status) ??
-      (status >= HttpStatus.INTERNAL_SERVER_ERROR
-        ? internalError
-        : invalidRequest);
+      exception instanceof ApiException
+        ? exception.publicBody
+        : (responses.get(status) ??
+          (status >= HttpStatus.INTERNAL_SERVER_ERROR
+            ? internalError
+            : invalidRequest));
     const response = host.switchToHttp().getResponse<unknown>();
     const { httpAdapter } = this.adapterHost;
 

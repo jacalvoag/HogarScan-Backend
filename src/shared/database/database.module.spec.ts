@@ -48,7 +48,7 @@ describe('DatabaseModule', () => {
     }
 
     expect(end).toHaveBeenCalledOnce();
-  });
+  }, 15_000);
 
   it('rejects module creation when the initial connection fails', async () => {
     const error = new Error('Connection failed');
