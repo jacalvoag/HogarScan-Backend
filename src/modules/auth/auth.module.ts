@@ -5,10 +5,13 @@ import { VerifySession } from './application/verify-session.js';
 import { Sha256SessionTokenHasher } from './infrastructure/crypto/sha256-session-token-hasher.js';
 import { PostgresSessionReader } from './infrastructure/persistence/postgres-session-reader.js';
 import { SessionGuard } from './presentation/http/session.guard.js';
+import { PASSWORD_HASHER } from './application/ports/password-hasher.port.js';
+import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 
 @Module({
   imports: [DatabaseModule],
   providers: [
+    { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     PostgresSessionReader,
     Sha256SessionTokenHasher,
     {
