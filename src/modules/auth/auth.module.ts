@@ -7,11 +7,14 @@ import { PostgresSessionReader } from './infrastructure/persistence/postgres-ses
 import { SessionGuard } from './presentation/http/session.guard.js';
 import { PASSWORD_HASHER } from './application/ports/password-hasher.port.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
+import { USER_CREATOR } from './application/ports/user-creator.port.js';
+import { PostgresUserCreator } from './infrastructure/persistence/postgres-user-creator.js';
 
 @Module({
   imports: [DatabaseModule],
   providers: [
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
+    { provide: USER_CREATOR, useClass: PostgresUserCreator },
     PostgresSessionReader,
     Sha256SessionTokenHasher,
     {
