@@ -14,6 +14,8 @@ import { PostgresSessionReader } from './infrastructure/persistence/postgres-ses
 import { PostgresUserCreator } from './infrastructure/persistence/postgres-user-creator.js';
 import { SessionGuard } from './presentation/http/session.guard.js';
 import { AuthController } from './presentation/http/auth.controller.js';
+import { CREDENTIALS_READER } from './application/ports/credentials-reader.port.js';
+import { PostgresCredentialsReader } from './infrastructure/persistence/postgres-credentials-reader.js';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { AuthController } from './presentation/http/auth.controller.js';
     },
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     { provide: USER_CREATOR, useClass: PostgresUserCreator },
+    { provide: CREDENTIALS_READER, useClass: PostgresCredentialsReader },
     PostgresSessionReader,
     Sha256SessionTokenHasher,
     {
