@@ -196,6 +196,14 @@ describe('HTTP error responses (e2e)', () => {
       .expect({ ok: true });
   });
 
+  it('accepts an empty body without Content-Type', async () => {
+    await request(app.getHttpServer())
+      .post('/__test-errors/json')
+      .set('Content-Length', '0')
+      .expect(201)
+      .expect({ ok: true });
+  });
+
   it.each([
     'text/plain',
     'application/x-www-form-urlencoded',

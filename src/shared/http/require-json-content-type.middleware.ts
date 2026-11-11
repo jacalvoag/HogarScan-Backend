@@ -18,8 +18,12 @@ function isSupportedContentType(value: string): boolean {
 
 export const requireJsonContentType: RequestHandler = (req, _res, next) => {
   const jsonType = req.is('application/json');
+  const emptyBody =
+    req.get('Content-Length') === '0' &&
+    req.get('Transfer-Encoding') === undefined;
 
   if (
+    emptyBody ||
     jsonType === null ||
     (jsonType !== false &&
       isSupportedContentType(req.get('Content-Type') ?? ''))

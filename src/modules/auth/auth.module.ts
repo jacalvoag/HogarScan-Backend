@@ -26,6 +26,9 @@ import { SessionGuard } from './presentation/http/session.guard.js';
 import { AuthController } from './presentation/http/auth.controller.js';
 import { CURRENT_SESSION_STORE } from './application/ports/current-session-store.port.js';
 import { PostgresCurrentSessionStore } from './infrastructure/persistence/postgres-current-session-store.js';
+import { ManageCurrentSession } from './application/manage-current-session.js';
+import type { CurrentSessionStore } from './application/ports/current-session-store.port.js';
+import { CurrentSessionController } from './presentation/http/current-session.controller.js';
 
 @Module({
   imports: [
@@ -35,8 +38,16 @@ import { PostgresCurrentSessionStore } from './infrastructure/persistence/postgr
       throttlers: [{ ttl: 60_000, limit: 5 }],
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, CurrentSessionController],
   providers: [
+    {
+      provide: ManageCurrentSession,
+      inject: [CURRENT_SESSION_STORE, Sha256SessionTokenHasher],
+      useFactory: (
+        sessions: CurrentSessionStore,
+        hasher: Sha256SessionTokenHasher,
+      ) => new ManageCurrentSession(sessions, hasher),
+    },
     {
       provide: LoginUser,
       inject: [CREDENTIALS_READER, PASSWORD_HASHER, SESSION_ISSUER],
