@@ -30,7 +30,7 @@ export class CheckKevMembership {
   ): Promise<KevLookupResult> {
     if (cve === undefined)
       return { state: 'NOT_QUERIED', checkedAt: null, inKev: null };
-    if (!/^CVE-[0-9]{4}-[0-9]{4,}$/.test(cve))
+    if (!/^CVE-[0-9]{4}-[0-9]{4,}(?![\s\S])/.test(cve))
       throw new Error('Invalid CVE identifier');
     signal.throwIfAborted();
     try {

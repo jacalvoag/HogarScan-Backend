@@ -30,6 +30,9 @@ describe('KEV catalog parser', () => {
     expect(() => result.contains('cve-2026-1111')).toThrow(
       'Invalid CVE identifier',
     );
+    expect(() => result.contains('CVE-2026-1111\n')).toThrow(
+      'Invalid CVE identifier',
+    );
   });
 
   it.each([

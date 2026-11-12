@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import type { KevCatalog } from '../../application/ports/vulnerability-sources.js';
 
-const cveId = z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,}$/);
+const cveId = z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,}(?![\s\S])/);
 const catalogEntry = z.object({
-  cveID: z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,19}$/),
+  cveID: z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,19}(?![\s\S])/),
   vendorProject: z.string(),
   product: z.string(),
   vulnerabilityName: z.string(),

@@ -104,6 +104,10 @@ describe('NVD candidate page parser', () => {
     { ...page, startIndex: -1 },
     { ...page, vulnerabilities: [] },
     { ...page, vulnerabilities: [{ cve: { ...record, id: 'cve-2026-1234' } }] },
+    {
+      ...page,
+      vulnerabilities: [{ cve: { ...record, id: 'CVE-2026-1234\n' } }],
+    },
     { ...page, vulnerabilities: [{ cve: { id: 'CVE-2026-1234' } }] },
     {
       ...page,

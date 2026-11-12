@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { NvdCandidatePage } from '../../application/ports/vulnerability-sources.js';
 
-const cveId = z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,}$/);
+const cveId = z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,}(?![\s\S])/);
 const nvdDate = z.iso.datetime({ offset: true, local: true });
 const criterion = z.strictObject({
   vulnerable: z.boolean(),
