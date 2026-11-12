@@ -61,3 +61,25 @@ por IP y ruta es de 60 solicitudes por minuto para `GET /rules` y 600 por minuto
 para `POST /evaluations`. El límite se aplica antes de comprobar la sesión en
 la ruta privada. Esos valores no autorizan consultas a proveedores externos;
 sus cuotas y controles deberán coordinarse antes de integrar NVD o KEV.
+
+## Preparación de fuentes externas
+
+Los contratos y parsers de NVD y CISA KEV se prueban con datos sintéticos. Las
+páginas de NVD se tratan como candidatos; se conservan sus configuraciones,
+operadores, negaciones y rangos de versión, pero todavía no se evalúa si una
+configuración afecta al dispositivo. Si NVD incluye datos `affected` que aún no
+se interpretan, se señala su presencia. Ningún candidato se convierte por sí
+solo en un hallazgo CVE.
+
+El parser de KEV comprueba los campos requeridos, identificadores y cantidad de
+registros antes de consultar pertenencia. Una fuente omitida o indisponible no
+se interpreta como resultado negativo. Los casos de uso preparados distinguen
+los estados y propagan cancelaciones; todavía no están conectados al módulo HTTP.
+
+Antes de realizar llamadas reales hay que acordar con José la configuración,
+límites de tamaño, tiempo, concurrencia, paginación y caché. También falta
+implementar y verificar la correlación conservadora de producto, versión y
+condiciones. La API actual sigue sin consultar NVD ni KEV.
+
+Referencias oficiales: [esquema de NVD CVE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema)
+y [esquema del catálogo KEV de CISA](https://github.com/cisagov/kev-data/blob/develop/known_exploited_vulnerabilities_schema.json).
