@@ -1,5 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { trackClientIp } from './rate-limit-tracker.js';
 import {
   BASIC_RULESET_PUBLISHED_AT,
   BASIC_RULESET_VERSION,
@@ -13,7 +14,7 @@ import {
 @Controller('rules')
 export class RulesController {
   @Get()
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000, getTracker: trackClientIp } })
   @UseGuards(ThrottlerGuard)
   getRules() {
     return {

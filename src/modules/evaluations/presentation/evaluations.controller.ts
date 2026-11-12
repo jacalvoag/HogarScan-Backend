@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { SessionGuard } from '../../auth/auth.public.js';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { trackClientIp } from './rate-limit-tracker.js';
 import { EvaluateBasic } from '../application/evaluate-basic.js';
 import {
   toEvaluationInput,
@@ -26,7 +27,7 @@ export class EvaluationsController {
   @Post()
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
-  @Throttle({ default: { limit: 600, ttl: 60_000 } })
+  @Throttle({ default: { limit: 600, ttl: 60_000, getTracker: trackClientIp } })
   @UseGuards(ThrottlerGuard, SessionGuard)
   evaluateObservation(
     @Body({ schema: evaluationSchema }) body: EvaluationBody,
