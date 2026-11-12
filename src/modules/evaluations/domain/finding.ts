@@ -33,7 +33,7 @@ export type Finding = FindingDetails &
 export function createFinding(finding: Finding): Finding {
   if (
     finding.category === 'POSSIBLE_CVE_MATCH' &&
-    !/^CVE-[0-9]{4}-[0-9]{4,}$/.test(finding.cve)
+    !/^CVE-[0-9]{4}-[0-9]{4,}(?![\s\S])/.test(finding.cve)
   ) {
     throw new Error('Invalid CVE identifier');
   }
