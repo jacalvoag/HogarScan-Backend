@@ -152,4 +152,25 @@ describe('NVD criterion against one resolved CPE', () => {
       ),
     ).toEqual({ state: 'INCONCLUSIVE' });
   });
+
+  it('combines one resolved CPE with candidate assessment without inferring other products', () => {
+    const candidate = {
+      cve: 'CVE-2026-1234',
+      status: 'Analyzed',
+      hasUnparsedAffectedData: false,
+      configurations: [
+        { nodes: [{ operator: 'OR' as const, cpeMatch: [criterion] }] },
+      ],
+    };
+    expect(
+      assessNvdApplicability(candidate, (item) =>
+        compareNvdCriterionToCpe(item, target, compare),
+      ),
+    ).toEqual({ state: 'POSSIBLE', matchedCriteria: ['synthetic'] });
+    expect(
+      assessNvdApplicability(candidate, (item) =>
+        compareNvdCriterionToCpe(item, target),
+      ),
+    ).toEqual({ state: 'INCONCLUSIVE' });
+  });
 });
