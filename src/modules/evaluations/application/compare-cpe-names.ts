@@ -1,5 +1,8 @@
 import { combineApplicability } from './applicability-logic.js';
 import type { ApplicabilityTruth } from './applicability-logic.js';
+import { assessNvdVersionBounds } from './assess-nvd-version-bounds.js';
+import type { CompareVersions } from './assess-nvd-version-bounds.js';
+import type { NvdMatchCriterion } from './ports/vulnerability-sources.js';
 
 /** Supported subset: CPE 2.3 formatted names with literal values, ANY or NA. */
 function parseSimpleCpe(value: string): readonly string[] | null {
@@ -24,7 +27,7 @@ function parseSimpleCpe(value: string): readonly string[] | null {
       !/^[a-zA-Z]{2,3}(?:-(?:[a-zA-Z]{2}|[0-9]{3}))?(?![\s\S])/.test(language))
   )
     return null;
-  return attributes.map((attribute) => attribute.toLowerCase());
+  return attributes;
 }
 
 /**
@@ -45,8 +48,41 @@ export function compareCpeNames(
       if (targetValue === undefined) return 'UNKNOWN';
       if (sourceValue === '*') return 'TRUE';
       if (targetValue === '*') return 'UNKNOWN';
-      return sourceValue === targetValue ? 'TRUE' : 'FALSE';
+      return sourceValue.toLowerCase() === targetValue.toLowerCase()
+        ? 'TRUE'
+        : 'FALSE';
     },
   );
   return combineApplicability('AND', relations);
+}
+
+/**
+ * Compares a criterion to one independently resolved CPE. A FALSE result says
+ * nothing about other products or prerequisites that were not inventoried.
+ */
+export function compareNvdCriterionToCpe(
+  criterion: NvdMatchCriterion,
+  resolvedCpe: string,
+  compareVersions?: CompareVersions,
+): ApplicabilityTruth {
+  const nameResult = compareCpeNames(criterion.criteria, resolvedCpe);
+  if (nameResult !== 'TRUE') return nameResult;
+  const hasBounds = [
+    criterion.versionStartIncluding,
+    criterion.versionStartExcluding,
+    criterion.versionEndIncluding,
+    criterion.versionEndExcluding,
+  ].some((value) => value !== undefined);
+  if (!hasBounds) return nameResult;
+
+  const version = parseSimpleCpe(resolvedCpe)?.[3];
+  if (
+    version === undefined ||
+    version === '*' ||
+    version === '-' ||
+    compareVersions === undefined
+  )
+    return 'UNKNOWN';
+  const bounds = assessNvdVersionBounds(version, criterion, compareVersions);
+  return combineApplicability('AND', [nameResult, bounds]);
 }
