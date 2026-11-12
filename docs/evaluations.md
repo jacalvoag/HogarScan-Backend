@@ -44,3 +44,18 @@ implementación de `GET /rules` debe utilizar esa misma fuente.
 Los tres últimos resultados producen hallazgos de evidencia insuficiente con
 prioridad indeterminada. La identificación declarada no genera coincidencias
 CVE: su correlación con fuentes externas queda para una entrega posterior.
+
+## Módulo HTTP básico
+
+`EvaluationsModule` prepara `GET /rules` público y `POST /evaluations` protegido
+por `SessionGuard`. La solicitud privada se valida con un esquema estricto, se
+interpreta sin persistencia y responde con `Cache-Control: no-store`. NVD y KEV
+figuran como `NOT_QUERIED`; no se generan coincidencias CVE en esta etapa.
+
+Los metadatos usan la versión del motor y fijan `published_at` al momento de
+integración de la versión 0.1.0 en `develop` (PR #24). La fecha definitiva de
+publicación debe confirmarse al coordinar el despliegue.
+
+El módulo aún no está registrado en `AppModule`: ese cambio corresponde a la
+coordinación con José. Los límites de solicitudes para estas rutas también deben
+coordinarse; las pruebas aisladas del módulo no demuestran su aplicación global.
