@@ -65,6 +65,16 @@ export function compareNvdCriterionToCpe(
   resolvedCpe: string,
   compareVersions?: CompareVersions,
 ): ApplicabilityTruth {
+  const source = parseSimpleCpe(criterion.criteria);
+  const target = parseSimpleCpe(resolvedCpe);
+  if (source === null || target === null) return 'UNKNOWN';
+  // A generic CPE cannot substantiate the specifically declared product/version.
+  if (
+    [source[1], source[2], target[0], target[1], target[2], target[3]].some(
+      (value) => value === undefined || value === '*' || value === '-',
+    )
+  )
+    return 'UNKNOWN';
   const nameResult = compareCpeNames(criterion.criteria, resolvedCpe);
   if (nameResult !== 'TRUE') return nameResult;
   const hasBounds = [
@@ -75,7 +85,7 @@ export function compareNvdCriterionToCpe(
   ].some((value) => value !== undefined);
   if (!hasBounds) return nameResult;
 
-  const version = parseSimpleCpe(resolvedCpe)?.[3];
+  const version = target[3];
   if (
     version === undefined ||
     version === '*' ||

@@ -1,4 +1,5 @@
 import { compareNvdCriterionToCpe } from './compare-cpe-names.js';
+import { assessNvdApplicability } from './assess-nvd-applicability.js';
 import type { CompareVersions } from './assess-nvd-version-bounds.js';
 import type { NvdMatchCriterion } from './ports/vulnerability-sources.js';
 
@@ -60,6 +61,29 @@ describe('NVD criterion against one resolved CPE', () => {
     ).toBe('UNKNOWN');
   });
 
+  it('does not substantiate a generic product or an unspecified version', () => {
+    const unbounded: NvdMatchCriterion = {
+      vulnerable: true,
+      matchCriteriaId: 'synthetic',
+      criteria: 'cpe:2.3:h:example:router:*:*:*:*:*:*:*:*',
+    };
+    expect(
+      compareNvdCriterionToCpe(
+        unbounded,
+        'cpe:2.3:h:example:router:*:*:*:*:*:*:*:*',
+      ),
+    ).toBe('UNKNOWN');
+    expect(
+      compareNvdCriterionToCpe(unbounded, 'cpe:2.3:h:*:*:v2:*:*:*:*:*:*:*'),
+    ).toBe('UNKNOWN');
+    expect(
+      compareNvdCriterionToCpe(
+        { ...unbounded, criteria: 'cpe:2.3:h:*:*:*:*:*:*:*:*:*:*' },
+        target,
+      ),
+    ).toBe('UNKNOWN');
+  });
+
   it('compares unbounded criteria without inventing a version range', () => {
     const {
       versionStartIncluding: _start,
@@ -80,5 +104,38 @@ describe('NVD criterion against one resolved CPE', () => {
       ),
     ).toBe('TRUE');
     expect(compareExact).toHaveBeenCalledWith('V2', 'v1');
+  });
+
+  it('keeps an unverified environment inconclusive even if the product matches', () => {
+    const candidate = {
+      cve: 'CVE-2026-1234',
+      status: 'Analyzed',
+      hasUnparsedAffectedData: false,
+      configurations: [
+        {
+          operator: 'AND' as const,
+          nodes: [
+            { operator: 'OR' as const, cpeMatch: [criterion] },
+            {
+              operator: 'OR' as const,
+              cpeMatch: [
+                {
+                  ...criterion,
+                  vulnerable: false,
+                  matchCriteriaId: 'environment',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(
+      assessNvdApplicability(candidate, (item) =>
+        item.vulnerable
+          ? compareNvdCriterionToCpe(item, target, compare)
+          : 'UNKNOWN',
+      ),
+    ).toEqual({ state: 'INCONCLUSIVE' });
   });
 });
