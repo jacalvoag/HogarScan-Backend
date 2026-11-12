@@ -2,6 +2,12 @@ import { parseNvdPage } from './parse-nvd-page.js';
 
 // Synthetic API 2.0 fixtures; no provider response or device data is stored.
 describe('NVD candidate page parser', () => {
+  const record = {
+    published: '2026-11-11T00:00:00.000',
+    lastModified: '2026-11-11T00:00:00.000',
+    descriptions: [{ lang: 'en', value: 'Synthetic fixture' }],
+    references: [],
+  };
   const page = {
     resultsPerPage: 2,
     startIndex: 0,
@@ -10,8 +16,14 @@ describe('NVD candidate page parser', () => {
     version: '2.0',
     timestamp: '2026-11-11T00:00:00.000',
     vulnerabilities: [
-      { cve: { id: 'CVE-2026-1234', configurations: [{ nodes: [] }] } },
-      { cve: { id: 'CVE-2026-12345' } },
+      {
+        cve: {
+          ...record,
+          id: 'CVE-2026-1234',
+          configurations: [{ nodes: [] }],
+        },
+      },
+      { cve: { ...record, id: 'CVE-2026-12345' } },
     ],
   };
 
@@ -44,12 +56,13 @@ describe('NVD candidate page parser', () => {
     { ...page, totalResults: 1 },
     { ...page, resultsPerPage: 1 },
     { ...page, startIndex: -1 },
-    { ...page, vulnerabilities: [{ cve: { id: 'cve-2026-1234' } }] },
+    { ...page, vulnerabilities: [{ cve: { ...record, id: 'cve-2026-1234' } }] },
+    { ...page, vulnerabilities: [{ cve: { id: 'CVE-2026-1234' } }] },
     {
       ...page,
       vulnerabilities: [
-        { cve: { id: 'CVE-2026-1234' } },
-        { cve: { id: 'CVE-2026-1234' } },
+        { cve: { ...record, id: 'CVE-2026-1234' } },
+        { cve: { ...record, id: 'CVE-2026-1234' } },
       ],
     },
   ])(
