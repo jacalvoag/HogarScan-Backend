@@ -47,12 +47,15 @@ describe('Evaluations module (e2e)', () => {
       .expect(200);
     expect(response.body).toMatchObject({
       ruleset_version: '0.1.0',
+      published_at: '2026-11-11T05:32:33Z',
       max_probes_per_evaluation: 6,
       max_addresses_per_scan: 254,
     });
     expect(response.body.categories).toHaveLength(5);
     expect(response.body.allowed_ports).toEqual([22, 23, 80, 443, 445, 3389]);
     expect(query).not.toHaveBeenCalled();
+    const next = await request(app.getHttpServer()).get('/rules').expect(200);
+    expect(next.body).toEqual(response.body);
   });
 
   it('evaluates authenticated requests with no-store and contract fields', async () => {
@@ -82,6 +85,8 @@ describe('Evaluations module (e2e)', () => {
       ),
     ).toEqual(['TCP_ACCEPTED', 'PROTOCOL_IDENTIFIED']);
     expect(response.body.evaluated_at).toMatch(/^\d{4}-\d\d-\d\dT/);
+    const rules = await request(app.getHttpServer()).get('/rules').expect(200);
+    expect(response.body.ruleset_version).toBe(rules.body.ruleset_version);
     expect(query).toHaveBeenCalledTimes(1);
   });
 
