@@ -3,6 +3,25 @@ import type { NvdCandidatePage } from '../../application/ports/vulnerability-sou
 
 const cveId = z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,}$/);
 const nvdDate = z.iso.datetime({ offset: true, local: true });
+const criterion = z.strictObject({
+  vulnerable: z.boolean(),
+  criteria: z.string(),
+  matchCriteriaId: z.guid(),
+  versionStartIncluding: z.string().optional(),
+  versionStartExcluding: z.string().optional(),
+  versionEndIncluding: z.string().optional(),
+  versionEndExcluding: z.string().optional(),
+});
+const node = z.strictObject({
+  operator: z.enum(['AND', 'OR']),
+  negate: z.boolean().optional(),
+  cpeMatch: z.array(criterion),
+});
+const configuration = z.strictObject({
+  operator: z.enum(['AND', 'OR']).optional(),
+  negate: z.boolean().optional(),
+  nodes: z.array(node),
+});
 const candidate = z.object({
   id: cveId,
   published: nvdDate,
@@ -11,6 +30,8 @@ const candidate = z.object({
     .array(z.object({ lang: z.string(), value: z.string().max(4096) }))
     .min(1),
   references: z.array(z.object({ url: z.url() })),
+  vulnStatus: z.string().optional(),
+  configurations: z.array(configuration).optional(),
 });
 const nvdPage = z
   .object({
@@ -33,7 +54,7 @@ const nvdPage = z
     }
   });
 
-/** Parses candidate identifiers only; it does not assess applicability. */
+/** Preserves applicability conditions but does not assess them. */
 export function parseNvdPage(payload: unknown): NvdCandidatePage {
   const result = nvdPage.safeParse(payload);
   if (!result.success) throw new Error('Invalid NVD response');
@@ -42,6 +63,10 @@ export function parseNvdPage(payload: unknown): NvdCandidatePage {
     startIndex: page.startIndex,
     resultsPerPage: page.resultsPerPage,
     totalResults: page.totalResults,
-    candidates: page.vulnerabilities.map(({ cve }) => ({ cve: cve.id })),
+    candidates: page.vulnerabilities.map(({ cve }) => ({
+      cve: cve.id,
+      status: cve.vulnStatus ?? null,
+      configurations: cve.configurations ?? null,
+    })),
   };
 }
