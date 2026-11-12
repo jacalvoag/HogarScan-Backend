@@ -2,7 +2,34 @@ import { z } from 'zod';
 import type { CpeDictionaryPage } from '../../application/ports/cpe-dictionary.js';
 
 const nvdDate = z.iso.datetime({ offset: true, local: true });
-const cpeName = z.string().min(1).max(2048).startsWith('cpe:2.3:');
+// Check the formatted-string envelope without interpreting escaped attributes.
+function hasCpeEnvelope(value: string): boolean {
+  if (!value.startsWith('cpe:2.3:')) return false;
+  let fields = 1;
+  let fieldLength = 0;
+  let escaped = false;
+  for (const char of value.slice('cpe:2.3:'.length)) {
+    if (!/^[\x21-\x7e]$/.test(char)) return false;
+    if (escaped) {
+      escaped = false;
+      fieldLength++;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === ':') {
+      if (fieldLength === 0) return false;
+      fields++;
+      fieldLength = 0;
+    } else {
+      fieldLength++;
+    }
+  }
+  return !escaped && fields === 11 && fieldLength > 0;
+}
+const cpeName = z.string().refine(hasCpeEnvelope);
 const record = z.object({
   cpeName,
   cpeNameId: z.guid(),

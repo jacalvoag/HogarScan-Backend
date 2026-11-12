@@ -53,6 +53,15 @@ describe('CPE dictionary page collection', () => {
     expect(() => collectCpePages([])).toThrow(
       'At least one CPE page is required',
     );
+    const empty = {
+      startIndex: 0,
+      resultsPerPage: 0,
+      totalResults: 0,
+      candidates: [],
+    };
+    expect(() => collectCpePages([empty, empty])).toThrow(
+      'Inconsistent CPE pages',
+    );
   });
 
   it.each([

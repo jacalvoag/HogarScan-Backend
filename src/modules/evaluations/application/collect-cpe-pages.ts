@@ -21,9 +21,10 @@ export function collectCpePages(
   const seen = new Set<string>();
   const candidates: CpeDictionaryCandidate[] = [];
 
-  for (const page of pages) {
+  for (const [index, page] of pages.entries()) {
     if (
       page.totalResults !== total ||
+      (index > 0 && candidates.length === total) ||
       page.startIndex !== candidates.length ||
       !Number.isSafeInteger(page.resultsPerPage) ||
       page.resultsPerPage < page.candidates.length ||

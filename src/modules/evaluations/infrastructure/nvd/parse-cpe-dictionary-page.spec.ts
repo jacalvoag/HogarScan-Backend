@@ -76,6 +76,27 @@ describe('CPE dictionary page parser', () => {
     { ...page, products: [{ cpe: { ...record, cpeNameId: 'invalid' } }] },
     { ...page, products: [{ cpe: { ...record, deprecated: 'false' } }] },
     { ...page, products: [{ cpe: { ...record, cpeName: 'not-cpe' } }] },
+    {
+      ...page,
+      products: [{ cpe: { ...record, cpeName: 'cpe:2.3:a:too:few' } }],
+    },
+    {
+      ...page,
+      products: [
+        { cpe: { ...record, cpeName: 'cpe:2.3:a:example::1.0:*:*:*:*:*:*:*' } },
+      ],
+    },
+    {
+      ...page,
+      products: [
+        {
+          cpe: {
+            ...record,
+            cpeName: 'cpe:2.3:a:example:router:1.0:*:*:*:*:*:*:\\',
+          },
+        },
+      ],
+    },
     { ...page, products: [{ cpe: { ...record, titles: [{ title: 'x' }] } }] },
     {
       ...page,
