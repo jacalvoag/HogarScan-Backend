@@ -83,6 +83,13 @@ el texto declarado por el usuario aún no se convierte a CPE automáticamente.
 La comparación es entre un criterio y un CPE, no demuestra que otros productos
 o requisitos estén ausentes del dispositivo.
 
+El parser del diccionario CPE de NVD conserva nombres, títulos, estado de
+obsolescencia y referencias a reemplazos como candidatos. La lectura paginada
+comprueba desplazamientos, totales e identificadores duplicados, y distingue
+páginas completas de parciales. Completar las páginas no garantiza que el
+diccionario no haya cambiado durante la lectura ni identifica automáticamente
+el producto declarado; un CPE obsoleto tampoco se sustituye automáticamente.
+
 Si NVD incluye datos `affected` sin interpretar o falta evidencia necesaria, la
 evaluación es inconclusa. Ningún candidato se convierte por sí solo en un
 hallazgo CVE ni confirma una vulnerabilidad.
@@ -99,6 +106,7 @@ otras formas CPE y la selección de comparadores respaldada por evidencia, adem�
 de la integración completa. La API actual sigue sin consultar NVD ni KEV.
 
 Referencias oficiales: [esquema de NVD CVE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema)
+y [esquema de NVD CPE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cpe_api_json_2.0.schema)
 y [esquema del catálogo KEV de CISA](https://github.com/cisagov/kev-data/blob/develop/known_exploited_vulnerabilities_schema.json).
 La lógica de condiciones se contrastó con [NISTIR 7698](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7698.pdf)
 y la [guía de configuraciones CPE del programa CVE](https://www.cve.org/Resources/Roles/Cnas/CPEinCVERecordsGuide.pdf).
