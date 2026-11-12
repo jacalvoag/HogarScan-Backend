@@ -53,4 +53,20 @@ describe('FindNvdCandidates', () => {
     ).rejects.toMatchObject({ name: 'AbortError' });
     expect(search).not.toHaveBeenCalled();
   });
+
+  it('does not return a page after cancellation during a lookup', async () => {
+    const controller = new AbortController();
+    search.mockImplementationOnce(async () => {
+      controller.abort();
+      return {
+        startIndex: 0,
+        resultsPerPage: 0,
+        totalResults: 0,
+        candidates: [],
+      };
+    });
+    await expect(
+      lookup.execute(identification, controller.signal),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });
