@@ -29,6 +29,7 @@ export class FindNvdCandidates {
     signal.throwIfAborted();
     try {
       const page = await this.source.search(identification, 0, signal);
+      signal.throwIfAborted();
       return { state: 'AVAILABLE', checkedAt: this.now(), page };
     } catch {
       signal.throwIfAborted();
