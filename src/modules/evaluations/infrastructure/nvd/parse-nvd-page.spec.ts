@@ -1,0 +1,61 @@
+import { parseNvdPage } from './parse-nvd-page.js';
+
+// Synthetic API 2.0 fixtures; no provider response or device data is stored.
+describe('NVD candidate page parser', () => {
+  const page = {
+    resultsPerPage: 2,
+    startIndex: 0,
+    totalResults: 3,
+    format: 'NVD_CVE',
+    version: '2.0',
+    timestamp: '2026-11-11T00:00:00.000',
+    vulnerabilities: [
+      { cve: { id: 'CVE-2026-1234', configurations: [{ nodes: [] }] } },
+      { cve: { id: 'CVE-2026-12345' } },
+    ],
+  };
+
+  it('normalizes candidates and preserves pagination without claiming applicability', () => {
+    expect(parseNvdPage(page)).toEqual({
+      startIndex: 0,
+      resultsPerPage: 2,
+      totalResults: 3,
+      candidates: [{ cve: 'CVE-2026-1234' }, { cve: 'CVE-2026-12345' }],
+    });
+  });
+
+  it('accepts a valid empty page as a successful empty result', () => {
+    expect(
+      parseNvdPage({
+        ...page,
+        resultsPerPage: 0,
+        totalResults: 0,
+        vulnerabilities: [],
+      }).candidates,
+    ).toEqual([]);
+  });
+
+  it.each([
+    null,
+    {},
+    { ...page, format: 'other' },
+    { ...page, version: '1.0' },
+    { ...page, timestamp: 'not-a-date' },
+    { ...page, totalResults: 1 },
+    { ...page, resultsPerPage: 1 },
+    { ...page, startIndex: -1 },
+    { ...page, vulnerabilities: [{ cve: { id: 'cve-2026-1234' } }] },
+    {
+      ...page,
+      vulnerabilities: [
+        { cve: { id: 'CVE-2026-1234' } },
+        { cve: { id: 'CVE-2026-1234' } },
+      ],
+    },
+  ])(
+    'rejects invalid or inconsistent responses without exposing them %#',
+    (payload) => {
+      expect(() => parseNvdPage(payload)).toThrow('Invalid NVD response');
+    },
+  );
+});
