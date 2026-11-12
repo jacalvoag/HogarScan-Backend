@@ -44,3 +44,20 @@ implementación de `GET /rules` debe utilizar esa misma fuente.
 Los tres últimos resultados producen hallazgos de evidencia insuficiente con
 prioridad indeterminada. La identificación declarada no genera coincidencias
 CVE: su correlación con fuentes externas queda para una entrega posterior.
+
+## Módulo HTTP básico
+
+`EvaluationsModule` prepara `GET /rules` público y `POST /evaluations` protegido
+por `SessionGuard`. La solicitud privada se valida con un esquema estricto, se
+interpreta sin persistencia y responde con `Cache-Control: no-store`. NVD y KEV
+figuran como `NOT_QUERIED`; no se generan coincidencias CVE en esta etapa.
+
+Los metadatos usan la versión del motor. La fecha fija de publicación de la
+versión 0.1.0 es `2026-11-11T05:32:33Z`, correspondiente a su integración en
+`develop` mediante el PR #24.
+
+El módulo está registrado en `AppModule`. Para la evaluación básica, el límite
+por IP y ruta es de 60 solicitudes por minuto para `GET /rules` y 600 por minuto
+para `POST /evaluations`. El límite se aplica antes de comprobar la sesión en
+la ruta privada. Esos valores no autorizan consultas a proveedores externos;
+sus cuotas y controles deberán coordinarse antes de integrar NVD o KEV.

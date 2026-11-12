@@ -8,6 +8,7 @@ import { ApiExceptionFilter } from './shared/http/api-exception.filter.js';
 import { StrictSchemaValidationPipe } from './shared/http/strict-schema-validation.pipe.js';
 import { DatabaseModule } from './shared/database/database.module.js';
 import { AuthModule } from './modules/auth/auth.public.js';
+import { EvaluationsModule } from './modules/evaluations/evaluations.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from './modules/auth/auth.public.js';
     }),
     DatabaseModule,
     AuthModule,
+    EvaluationsModule,
   ],
   controllers: [AppController],
   providers: [
