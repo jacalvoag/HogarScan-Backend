@@ -48,6 +48,7 @@ const nvdPage = z
     const ids = page.vulnerabilities.map(({ cve }) => cve.id);
     if (
       ids.length > page.resultsPerPage ||
+      (ids.length === 0 && page.startIndex < page.totalResults) ||
       (ids.length > 0 && page.startIndex + ids.length > page.totalResults) ||
       new Set(ids).size !== ids.length
     ) {
