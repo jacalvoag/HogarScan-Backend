@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { BASIC_RULESET_VERSION } from '../domain/basic-rules.js';
 import { FINDING_CATEGORIES } from '../domain/finding-classification.js';
 import {
@@ -9,6 +10,8 @@ import {
 @Controller('rules')
 export class RulesController {
   @Get()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @UseGuards(ThrottlerGuard)
   getRules() {
     return {
       ruleset_version: BASIC_RULESET_VERSION,
