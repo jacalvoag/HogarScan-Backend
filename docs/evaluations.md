@@ -72,10 +72,17 @@ vulnerable positiva para una coincidencia posible. Los límites de versión se
 evalúan únicamente con un comparador suministrado para un esquema conocido; no
 se inventa un orden general para las versiones de fabricantes.
 
-El comparador de CPE y producto todavía no está implementado ni conectado a la
-identificación declarada. Si NVD incluye datos `affected` sin interpretar o
-falta evidencia necesaria, la evaluación es inconclusa. Ningún candidato se
-convierte por sí solo en un hallazgo CVE ni confirma una vulnerabilidad.
+La comparación CPE preparada acepta únicamente nombres formateados 2.3 con
+valores literales, ANY o NA. Las secuencias escapadas y los comodines parciales
+se consideran desconocidos. Para evaluar un criterio se necesita un CPE
+resuelto de forma independiente, con fabricante, producto y versión concretos;
+el texto declarado por el usuario aún no se convierte a CPE automáticamente.
+La comparación es entre un criterio y un CPE, no demuestra que otros productos
+o requisitos estén ausentes del dispositivo.
+
+Si NVD incluye datos `affected` sin interpretar o falta evidencia necesaria, la
+evaluación es inconclusa. Ningún candidato se convierte por sí solo en un
+hallazgo CVE ni confirma una vulnerabilidad.
 
 El parser de KEV comprueba los campos requeridos, identificadores y cantidad de
 registros antes de consultar pertenencia. Una fuente omitida o indisponible no
@@ -84,11 +91,14 @@ los estados y propagan cancelaciones; todavía no están conectados al módulo H
 
 Antes de realizar llamadas reales hay que acordar con José la configuración,
 límites de tamaño, tiempo, concurrencia, paginación y caché. También falta
-implementar y verificar la comparación de CPE y producto, los comparadores de
-versiones respaldados por evidencia y la integración completa. La API actual
-sigue sin consultar NVD ni KEV.
+implementar la resolución fiable de identificación a CPE, la compatibilidad con
+otras formas CPE y comparadores de versiones respaldados por evidencia, además
+de la integración completa. La API actual sigue sin consultar NVD ni KEV.
 
 Referencias oficiales: [esquema de NVD CVE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema)
 y [esquema del catálogo KEV de CISA](https://github.com/cisagov/kev-data/blob/develop/known_exploited_vulnerabilities_schema.json).
 La lógica de condiciones se contrastó con [NISTIR 7698](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7698.pdf)
 y la [guía de configuraciones CPE del programa CVE](https://www.cve.org/Resources/Roles/Cnas/CPEinCVERecordsGuide.pdf).
+El subconjunto de comparación usa las reglas de
+[nombres CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7695.pdf) y
+[comparación CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7696.pdf).
