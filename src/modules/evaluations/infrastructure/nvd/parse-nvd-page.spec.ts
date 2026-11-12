@@ -53,6 +53,7 @@ describe('NVD candidate page parser', () => {
           id: 'CVE-2026-1234',
           vulnStatus: 'Analyzed',
           configurations,
+          affected: [{ source: 'synthetic' }],
         },
       },
       { cve: { ...record, id: 'CVE-2026-12345' } },
@@ -65,8 +66,18 @@ describe('NVD candidate page parser', () => {
       resultsPerPage: 2,
       totalResults: 3,
       candidates: [
-        { cve: 'CVE-2026-1234', status: 'Analyzed', configurations },
-        { cve: 'CVE-2026-12345', status: null, configurations: null },
+        {
+          cve: 'CVE-2026-1234',
+          status: 'Analyzed',
+          configurations,
+          hasUnparsedAffectedData: true,
+        },
+        {
+          cve: 'CVE-2026-12345',
+          status: null,
+          configurations: null,
+          hasUnparsedAffectedData: false,
+        },
       ],
     });
   });

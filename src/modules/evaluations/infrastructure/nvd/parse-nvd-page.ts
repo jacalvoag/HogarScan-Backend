@@ -32,6 +32,7 @@ const candidate = z.object({
   references: z.array(z.object({ url: z.url() })),
   vulnStatus: z.string().optional(),
   configurations: z.array(configuration).optional(),
+  affected: z.array(z.unknown()).optional(),
 });
 const nvdPage = z
   .object({
@@ -67,6 +68,7 @@ export function parseNvdPage(payload: unknown): NvdCandidatePage {
       cve: cve.id,
       status: cve.vulnStatus ?? null,
       configurations: cve.configurations ?? null,
+      hasUnparsedAffectedData: cve.affected !== undefined,
     })),
   };
 }
