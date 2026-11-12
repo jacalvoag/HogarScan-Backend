@@ -70,7 +70,10 @@ operadores, negaciones y rangos de versión. El evaluador preparado combina
 condiciones con resultados verdadero, falso o desconocido y exige una condición
 vulnerable positiva para una coincidencia posible. Los límites de versión se
 evalúan únicamente con un comparador suministrado para un esquema conocido; no
-se inventa un orden general para las versiones de fabricantes.
+se inventa un orden general para las versiones de fabricantes. Hay un comparador
+de [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html), pero debe elegirse solo
+cuando exista evidencia de que el producto usa ese esquema: tener tres números
+en la versión no demuestra que sea SemVer.
 
 La comparación CPE preparada acepta únicamente nombres formateados 2.3 con
 valores literales, ANY o NA. Las secuencias escapadas y los comodines parciales
@@ -92,7 +95,7 @@ los estados y propagan cancelaciones; todavía no están conectados al módulo H
 Antes de realizar llamadas reales hay que acordar con José la configuración,
 límites de tamaño, tiempo, concurrencia, paginación y caché. También falta
 implementar la resolución fiable de identificación a CPE, la compatibilidad con
-otras formas CPE y comparadores de versiones respaldados por evidencia, además
+otras formas CPE y la selección de comparadores respaldada por evidencia, además
 de la integración completa. La API actual sigue sin consultar NVD ni KEV.
 
 Referencias oficiales: [esquema de NVD CVE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema)
