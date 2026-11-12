@@ -75,6 +75,13 @@ export function compareNvdCriterionToCpe(
     )
   )
     return 'UNKNOWN';
+  // CPE matching is case-insensitive, but some version schemes are not.
+  if (
+    source[3] !== '*' &&
+    source[3] !== target[3] &&
+    source[3]?.toLowerCase() === target[3]?.toLowerCase()
+  )
+    return 'UNKNOWN';
   const nameResult = compareCpeNames(criterion.criteria, resolvedCpe);
   if (nameResult !== 'TRUE') return nameResult;
   const hasBounds = [

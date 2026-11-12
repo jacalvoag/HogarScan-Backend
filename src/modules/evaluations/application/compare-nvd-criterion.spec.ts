@@ -106,6 +106,20 @@ describe('NVD criterion against one resolved CPE', () => {
     expect(compareExact).toHaveBeenCalledWith('V2', 'v1');
   });
 
+  it('does not assume case-only version differences are equivalent', () => {
+    const exact: NvdMatchCriterion = {
+      vulnerable: true,
+      matchCriteriaId: 'synthetic',
+      criteria: 'cpe:2.3:h:example:router:1.0.0-ALPHA:*:*:*:*:*:*:*',
+    };
+    expect(
+      compareNvdCriterionToCpe(
+        exact,
+        'cpe:2.3:h:example:router:1.0.0-alpha:*:*:*:*:*:*:*',
+      ),
+    ).toBe('UNKNOWN');
+  });
+
   it('keeps an unverified environment inconclusive even if the product matches', () => {
     const candidate = {
       cve: 'CVE-2026-1234',
