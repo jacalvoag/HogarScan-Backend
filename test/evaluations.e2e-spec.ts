@@ -2,8 +2,8 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { EvaluateBasic } from '../src/modules/evaluations/application/evaluate-basic.js';
-import { EvaluationsModule } from '../src/modules/evaluations/evaluations.module.js';
 import { POSTGRES_POOL } from '../src/shared/database/postgres-pool.token.js';
+import { configureJsonBody } from '../src/shared/http/configure-json-body.js';
 import { createHttpTestModule } from './helpers/create-http-test-module.js';
 
 describe('Evaluations module (e2e)', () => {
@@ -20,7 +20,7 @@ describe('Evaluations module (e2e)', () => {
 
   beforeAll(async () => {
     const moduleRef = await createHttpTestModule({
-      imports: [AppModule, EvaluationsModule],
+      imports: [AppModule],
     })
       .overrideProvider(POSTGRES_POOL)
       .useValue({ query })
@@ -28,7 +28,9 @@ describe('Evaluations module (e2e)', () => {
     evaluate = moduleRef.get(EvaluateBasic);
     app = moduleRef.createNestApplication<NestExpressApplication>({
       logger: false,
+      rawBody: true,
     });
+    configureJsonBody(app);
     await app.listen(0);
   });
   beforeEach(() => {
@@ -108,6 +110,64 @@ describe('Evaluations module (e2e)', () => {
     expect(spy).not.toHaveBeenCalled();
     expect(query).not.toHaveBeenCalled();
     spy.mockRestore();
+  });
+
+  it('rejects malformed bearer credentials before evaluation', async () => {
+    const spy = vi.spyOn(evaluate, 'execute');
+    await request(app.getHttpServer())
+      .post('/evaluations')
+      .set('Authorization', 'Bearer invalid')
+      .send({ probes: [{ port: 22, outcome: 'ERROR' }] })
+      .expect(401);
+    expect(spy).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('rejects duplicate JSON keys at the application boundary', async () => {
+    await request(app.getHttpServer())
+      .post('/evaluations')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Content-Type', 'application/json')
+      .send('{"probes":[{"port":22,"port":80,"outcome":"ERROR"}]}')
+      .expect(400);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid UTF-8 at the application boundary', async () => {
+    const pending = request(app.getHttpServer())
+      .post('/evaluations')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Content-Type', 'application/json');
+    pending.write(
+      Buffer.concat([
+        Buffer.from('{"value":"'),
+        Buffer.from([0xc3]),
+        Buffer.from('"}'),
+      ]),
+    );
+    await pending.expect(400);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized JSON before evaluation', async () => {
+    await request(app.getHttpServer())
+      .post('/evaluations')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ value: 'a'.repeat(16384) }))
+      .expect(413);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects unsupported content types before evaluation', async () => {
+    await request(app.getHttpServer())
+      .post('/evaluations')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Content-Type', 'text/plain')
+      .send('invalid')
+      .expect(415);
+    expect(query).not.toHaveBeenCalled();
   });
 
   it('rejects invalid input before evaluation', async () => {
