@@ -120,4 +120,75 @@ describe('Evaluations module (e2e)', () => {
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
+
+  it.each([
+    {
+      probes: [
+        { port: 22, outcome: 'ERROR' },
+        { port: 22, outcome: 'ACCEPTED' },
+      ],
+    },
+    {
+      probes: [
+        {
+          port: 22,
+          outcome: 'ACCEPTED',
+          protocol: 'SSH',
+          evidence_kind: 'HTTP_RESPONSE',
+        },
+      ],
+    },
+    { probes: [{ port: 22, outcome: 'ERROR', banner: 'private' }] },
+    {
+      probes: [{ port: 22, outcome: 'ERROR' }],
+      identification: {
+        vendor: 'x',
+        product: 'x',
+        version: '1',
+        source: 'USER_DEVICE_LABEL',
+        extra: true,
+      },
+    },
+  ])(
+    'rejects invalid contract relations and nested fields %#',
+    async (body) => {
+      const spy = vi.spyOn(evaluate, 'execute');
+      await request(app.getHttpServer())
+        .post('/evaluations')
+        .set('Authorization', `Bearer ${token}`)
+        .send(body)
+        .expect(400);
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    },
+  );
+
+  it('returns the exact response shape without writing an evaluation', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/evaluations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ probes: [{ port: 443, outcome: 'TIMEOUT' }] })
+      .expect(200);
+    expect(Object.keys(response.body).sort()).toEqual([
+      'evaluated_at',
+      'findings',
+      'possible_cve_matches',
+      'ruleset_version',
+      'sources',
+    ]);
+    expect(Object.keys(response.body.findings[0]).sort()).toEqual([
+      'action',
+      'category',
+      'confidence',
+      'cve',
+      'evidence',
+      'explanation',
+      'limitation',
+      'priority',
+      'rule_id',
+      'title',
+    ]);
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]?.[0]).toMatch(/SELECT/i);
+  });
 });
