@@ -31,14 +31,17 @@ describe('Finding', () => {
     expect(createFinding(possibleCve)).not.toBe(possibleCve);
   });
 
-  it.each(['CVE-2026-123', 'cve-2026-1234', 'CVE-26-1234', 'CVE-2026-1234 '])(
-    'rejects a CVE outside the contract pattern: %s',
-    (cve) => {
-      expect(() => createFinding({ ...possibleCve, cve })).toThrow(
-        'Invalid CVE identifier',
-      );
-    },
-  );
+  it.each([
+    'CVE-2026-123',
+    'cve-2026-1234',
+    'CVE-26-1234',
+    'CVE-2026-1234 ',
+    'CVE-2026-1234\n',
+  ])('rejects a CVE outside the contract pattern: %s', (cve) => {
+    expect(() => createFinding({ ...possibleCve, cve })).toThrow(
+      'Invalid CVE identifier',
+    );
+  });
 
   it('ties possible CVE findings to possible confidence and a CVE', () => {
     expectTypeOf<
