@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.public.js';
 import { EvaluationsModule } from './modules/evaluations/evaluations.module.js';
 import { ScanSummariesModule } from './modules/scan-summaries/scan-summaries.module.js';
 import { externalSourcesConfig } from './config/external-sources.config.js';
+import { HealthModule } from './modules/health/health.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { externalSourcesConfig } from './config/external-sources.config.js';
     AuthModule,
     EvaluationsModule,
     ScanSummariesModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

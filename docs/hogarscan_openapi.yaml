@@ -36,8 +36,33 @@ tags:
   - {name: Acceso}
   - {name: Evaluación}
   - {name: Estadísticas}
+  - {name: Operación}
 
 paths:
+  /health/live:
+    get:
+      tags: [Operación]
+      operationId: getLiveness
+      summary: Comprobar que el proceso de la API responde.
+      description: >-
+        Ruta pública de liveness para supervisión del proceso. No consulta
+        PostgreSQL, NVD ni CISA KEV y no acredita disponibilidad de dependencias.
+      security: []
+      responses:
+        '200':
+          description: El proceso atiende solicitudes HTTP.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: {type: string, enum: [ok]}
+              example: {status: ok}
+              
   /auth/register:
     post:
       tags: [Acceso]
