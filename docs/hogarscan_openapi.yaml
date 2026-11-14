@@ -62,6 +62,32 @@ paths:
                 properties:
                   status: {type: string, enum: [ok]}
               example: {status: ok}
+    /health/ready:
+    get:
+      tags: [Operación]
+      operationId: getReadiness
+      summary: Comprobar que la API puede consultar PostgreSQL.
+      description: >-
+        Ejecuta SELECT 1 usando el pool de la aplicación. La adquisición de una
+        conexión conserva su límite de 10 segundos y la consulta tiene un límite
+        de 1 segundo. Las solicitudes concurrentes comparten la prueba pendiente.
+        No consulta NVD ni CISA KEV ni comprueba todas las operaciones del negocio.
+      security: []
+      responses:
+        '200':
+          description: La consulta de comprobación a PostgreSQL respondió correctamente.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: {type: string, enum: [ok]}
+              example: {status: ok}
+        '503': {$ref: '#/components/responses/Unavailable'}
               
   /auth/register:
     post:
