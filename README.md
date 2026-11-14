@@ -137,6 +137,11 @@ El instalador comprueba la API local y su acceso mediante Caddy. Si falla la
 activación, intenta restaurar la versión y las configuraciones anteriores.
 El despliegue se informa como fallido aunque la restauración termine bien.
 
+Después de un despliegue exitoso, `/opt/hogarscan/previous` apunta a la versión
+que estaba activa anteriormente. Si el despliegue falla, el instalador restaura
+también el estado previo de ese enlace. La limpieza de versiones debe conservar
+los destinos de `current` y `previous`.
+
 ### Configuración del servidor
 
 Las variables privadas se encuentran en `/etc/hogarscan/api.env`, con propietario
