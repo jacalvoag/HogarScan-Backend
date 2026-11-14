@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Validate OpenAPI
+        run: npm run validate:openapi
+
       - name: Check TypeScript
         run: npx --no-install tsc --noEmit
 
@@ -58,8 +61,11 @@ jobs:
       - name: HTTP tests
         run: npm run test:e2e
 
-      - name: Check deployment script
-        run: bash -n deploy/scripts/deploy-release.sh
+      - name: Check deployment scripts
+        run: |
+          for script in deploy/scripts/*.sh; do
+            bash -n "$script"
+          done
 
       - name: Package validated build
         run: node scripts/package-release.mjs
@@ -141,7 +147,7 @@ jobs:
         shell: bash
         run: |
           parameters=$(jq -cn \
-            --arg command "/usr/local/sbin/hogarscan-deploy-release $RELEASE_ID" \
+            --arg command "/usr/local/sbin/hogarscan-deploy-release $RELEASE_ID && /usr/local/sbin/hogarscan-prune-releases --apply" \
             '{commands: [$command], executionTimeout: ["900"]}')
 
           command_id=$(aws ssm send-command \

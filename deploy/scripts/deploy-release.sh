@@ -27,6 +27,8 @@ domain=hogarscan-jacalvoag.duckdns.org
 [[ ! -e $release_dir && ! -L $release_dir ]] || fail 'Esta versión ya existe; usa otro identificador.'
 [[ -L $base/current ]] || fail 'No existe el enlace de la versión anterior.'
 previous=$(readlink -e "$base/current")
+[[ ! -e $base/previous || -L $base/previous ]] || fail 'previous debe ser un enlace simbólico.'
+previous_link=$(readlink "$base/previous" 2>/dev/null || true)
 [[ $previous == "$base/releases/"* && -f $previous/dist/main.js ]] || fail 'La versión anterior no es válida.'
 [[ -f $unit && -f $caddyfile ]] || fail 'Falta la configuración instalada.'
 
@@ -59,6 +61,11 @@ rollback() {
   install -o root -g root -m 644 "$work/previous.Caddyfile" "$caddyfile" || failed=1
   rm -f "$base/current.deploy" || failed=1
   switch_release "$previous" || failed=1
+    if [[ -n $previous_link ]]; then
+      ln -sfnT "$previous_link" "$base/previous" || failed=1
+    else
+      rm -f "$base/previous" || failed=1
+    fi
   systemctl daemon-reload || failed=1
   systemctl reset-failed hogarscan-api || failed=1
   systemctl restart hogarscan-api || failed=1
@@ -128,5 +135,6 @@ wait_ready http://127.0.0.1:3000/health/ready
 systemctl reload caddy
 wait_ready "https://$domain/health/ready" --resolve "$domain:443:127.0.0.1"
 
+ln -sfnT "$previous" "$base/previous"
 committed=true
 printf '\nDespliegue completado: %s\n' "$release_id"
