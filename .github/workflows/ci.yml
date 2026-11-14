@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
@@ -55,3 +55,24 @@ jobs:
 
       - name: HTTP tests
         run: npm run test:e2e
+
+      - name: Check deployment script
+        run: bash -n deploy/scripts/deploy-release.sh
+
+      - name: Package validated build
+        run: node scripts/package-release.mjs
+
+      - name: Verify release checksum
+        working-directory: release
+        run: sha256sum --strict --check hogarscan-api.tar.gz.sha256
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hogarscan-api-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            release/hogarscan-api.tar.gz
+            release/hogarscan-api.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
