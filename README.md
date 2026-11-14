@@ -154,6 +154,31 @@ del paquete de despliegue.
 El instalador está en `/usr/local/sbin/hogarscan-deploy-release`. Los cambios
 en ese script requieren actualizar también su copia instalada en EC2.
 
+### Conservación de versiones en EC2
+
+El script `deploy/scripts/prune-releases.sh` conserva los destinos de `current`
+y `previous`, además de cinco versiones adicionales recientes ordenadas por
+la fecha de modificación de sus directorios.
+
+Solo considera directorios con identificadores de versión reconocidos.
+Comparte el bloqueo del instalador y se detiene si los enlaces protegidos
+faltan o tienen destinos inválidos.
+
+Después de instalarlo en EC2, la simulación se ejecuta con:
+
+```bash
+sudo /usr/local/sbin/hogarscan-prune-releases --dry-run
+```
+
+Para aplicar la limpieza:
+
+```bash
+sudo /usr/local/sbin/hogarscan-prune-releases --apply
+```
+
+Esta limpieza actúa sobre las versiones locales de EC2. Los paquetes de S3
+tienen una política de conservación independiente.
+
 ### Diagnóstico desde EC2
 
 ```bash

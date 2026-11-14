@@ -61,8 +61,11 @@ jobs:
       - name: HTTP tests
         run: npm run test:e2e
 
-      - name: Check deployment script
-        run: bash -n deploy/scripts/deploy-release.sh
+      - name: Check deployment scripts
+        run: |
+          for script in deploy/scripts/*.sh; do
+            bash -n "$script"
+          done
 
       - name: Package validated build
         run: node scripts/package-release.mjs
