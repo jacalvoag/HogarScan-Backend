@@ -387,7 +387,7 @@ paths:
                 stale:
                   value:
                     code: STALE_SUMMARY_GENERATION
-                    message: La generación ya cambió.
+                    message: El resumen pertenece a una generación de estadísticas anterior.
                     details: {current_summary_generation: 1}
                 future:
                   value:
@@ -396,6 +396,8 @@ paths:
                     details: {current_summary_generation: 1}
           headers:
             Cache-Control: {$ref: '#/components/headers/NoStore'}
+        '413': {$ref: '#/components/responses/TooLarge'}
+        '415': {$ref: '#/components/responses/UnsupportedMediaType'}
         '429': {$ref: '#/components/responses/RateLimited'}
         '500': {$ref: '#/components/responses/InternalError'}
         '503': {$ref: '#/components/responses/Unavailable'}
