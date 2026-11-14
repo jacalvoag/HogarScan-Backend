@@ -6,6 +6,7 @@ describe('validateEnvironment', () => {
       NODE_ENV: 'development',
       PORT: 3000,
       API_HOST: '0.0.0.0',
+      TRUST_LOCAL_PROXY: false,
     });
   });
 
@@ -16,6 +17,7 @@ describe('validateEnvironment', () => {
       NODE_ENV: 'production',
       PORT: 8080,
       API_HOST: '0.0.0.0',
+      TRUST_LOCAL_PROXY: false,
     });
   });
 
@@ -63,6 +65,7 @@ describe('validateEnvironment', () => {
       PORT: 3000,
       API_HOST: '0.0.0.0',
       DB_PORT: '5432',
+      TRUST_LOCAL_PROXY: false,
     });
   });
 
@@ -86,4 +89,19 @@ describe('validateEnvironment', () => {
       'API_HOST debe ser una dirección IPv4 o IPv6 literal.',
     );
   });
+
+  it.each(['true', 'false'])('accepts TRUST_LOCAL_PROXY=%s', (value) => {
+    expect(
+      validateEnvironment({ TRUST_LOCAL_PROXY: value }).TRUST_LOCAL_PROXY,
+    ).toBe(value === 'true');
+  });
+
+  it.each(['', 'TRUE', '1', 'true\n', ' false ', true, false, null])(
+    'rejects invalid TRUST_LOCAL_PROXY=%j',
+    (value) => {
+      expect(() => validateEnvironment({ TRUST_LOCAL_PROXY: value })).toThrow(
+        'TRUST_LOCAL_PROXY debe ser true o false.',
+      );
+    },
+  );
 });

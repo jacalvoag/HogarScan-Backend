@@ -93,3 +93,13 @@ a ese presupuesto nominal. Los fallos de NVD/KEV no forman parte de readiness.
 
 El equipo trabaja mediante ramas por bloque funcional, varios commits pequeños
 por rama y Pull Requests hacia `develop`.
+
+## Proxy local
+
+`TRUST_LOCAL_PROXY=false` es el valor predeterminado y descarta los encabezados
+reenviados al determinar la IP y el protocolo del cliente. Usa `true` cuando
+Caddy esté en el mismo servidor y la API escuche en `127.0.0.1` o `::1`.
+En ese modo Express confía únicamente en conexiones desde loopback. Caddy debe
+reemplazar los encabezados `X-Forwarded-*` recibidos del cliente, como hace por
+defecto. Los límites se aplican por IP; clientes que compartan una IP pública
+también comparten el contador correspondiente.

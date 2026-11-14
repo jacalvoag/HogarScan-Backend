@@ -4,6 +4,7 @@ export interface Environment {
   NODE_ENV: 'development' | 'test' | 'production';
   PORT: number;
   API_HOST: string;
+  TRUST_LOCAL_PROXY: boolean;
 }
 
 export function validateEnvironment(
@@ -40,5 +41,18 @@ export function validateEnvironment(
     throw new Error('API_HOST debe ser una dirección IPv4 o IPv6 literal.');
   }
 
-  return { ...values, NODE_ENV: nodeEnv, PORT: port, API_HOST: host };
+  const trustLocalProxy =
+    values.TRUST_LOCAL_PROXY === undefined ? 'false' : values.TRUST_LOCAL_PROXY;
+
+  if (trustLocalProxy !== 'true' && trustLocalProxy !== 'false') {
+    throw new Error('TRUST_LOCAL_PROXY debe ser true o false.');
+  }
+
+  return {
+    ...values,
+    NODE_ENV: nodeEnv,
+    PORT: port,
+    API_HOST: host,
+    TRUST_LOCAL_PROXY: trustLocalProxy === 'true',
+  };
 }
