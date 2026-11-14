@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Validate OpenAPI
+        run: npm run validate:openapi
+
       - name: Check TypeScript
         run: npx --no-install tsc --noEmit
 
