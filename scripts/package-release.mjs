@@ -9,6 +9,7 @@ const files = [
   'package.json',
   'package-lock.json',
   'deploy/systemd/hogarscan-api.service',
+  'deploy/caddy/Caddyfile',
 ];
 
 for (const file of ['dist/main.js', ...files]) {

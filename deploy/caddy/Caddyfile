@@ -1,0 +1,9 @@
+hogarscan-jacalvoag.duckdns.org {
+	reverse_proxy 127.0.0.1:3000 {
+		transport http {
+			dial_timeout 3s
+			response_header_timeout 60s
+			keepalive 4s
+		}
+	}
+}
