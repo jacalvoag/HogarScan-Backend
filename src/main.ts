@@ -14,6 +14,11 @@ async function bootstrap() {
   configureJsonBody(app);
 
   const config = app.get<ConfigService<Environment, true>>(ConfigService);
-  await app.listen(config.getOrThrow('PORT', { infer: true }));
+
+  await app.listen(
+    config.getOrThrow('PORT', { infer: true }),
+    config.getOrThrow('API_HOST', { infer: true }),
+  );
 }
+
 await bootstrap();

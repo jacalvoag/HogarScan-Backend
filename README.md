@@ -1,132 +1,95 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# HogarScan Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API de HogarScan desarrollada con NestJS y TypeScript. Interpreta observaciones
+TCP enviadas por la aplicación Android y gestiona cuentas y resúmenes para
+estadísticas. Las revisiones de red se ejecutan en el teléfono.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+La integración real de NVD y CISA KEV está en desarrollo. Las fuentes externas
+permanecen deshabilitadas por defecto.
 
-## Description
+## Entorno
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Node.js 26.13.0 y npm 11.11.0, utilizados también en CI.
+- PostgreSQL en RDS con conexión TLS y verificación del certificado del servidor.
+- Los comandos de este documento usan Bash o Git Bash.
 
-## Project setup
+## Configuración
 
-```bash
-$ npm install
-```
+En una instalación nueva, crea `.env` a partir de [.env.example](.env.example)
+y completa las variables de conexión. Si ya tienes `.env`, conserva sus valores.
+La aplicación carga ese archivo desde el directorio de ejecución; las variables
+definidas por el entorno tienen prioridad. En un servidor también puedes
+proporcionar las variables sin crear un archivo `.env`.
 
-## Compile and run the project
+| Variable                                       | Valor predeterminado | Uso                                            |
+| ---------------------------------------------- | -------------------- | ---------------------------------------------- |
+| `NODE_ENV`                                     | `development`        | Entorno: `development`, `test` o `production`. |
+| `PORT`                                         | `3000`               | Puerto de escucha de la API.                   |
+| `API_HOST`                                     | `0.0.0.0`            | Dirección IP literal donde escucha la API.     |
+| `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Requeridas           | Conexión de la API a PostgreSQL.               |
+| `DB_PORT`                                      | `5432`               | Puerto de PostgreSQL.                          |
+| `DB_SSL_CA_PATH`                               | Requerida            | Ruta al archivo CA regional de RDS.            |
+| `SESSION_TTL_SECONDS`                          | `604800`             | Vigencia de una sesión.                        |
 
-```bash
-# development
-$ npm run start
+`API_HOST=127.0.0.1` permite acceso desde el mismo equipo o un proxy local.
+`API_HOST=0.0.0.0` escucha en las interfaces IPv4, útil para pruebas en LAN o un
+contenedor. También se admiten direcciones IPv6 literales. La dirección de
+escucha no es la URL que debe usar el móvil: utiliza la IP accesible del servidor
+o el dominio público cuando se configure el despliegue.
 
-# watch mode
-$ npm run start:dev
+`DB_SSL_CA_PATH` corresponde al equipo donde corre Node. En Windows puede ser
+`C:/certificados/mx-central-1-bundle.pem`; en un servidor Linux será la ruta donde
+se haya colocado o montado ese archivo. El proceso debe poder leerlo y se
+mantiene la verificación TLS. Credenciales y archivos `.env` quedan fuera de Git.
 
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+## Instalación, desarrollo y verificación
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm ci
+npm run start:dev
 ```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npx tsc --noEmit
+npm run build
+npm run lint
+npm test
+npm run test:e2e
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
+## Ejecución del build
 
 ```bash
-$ npx @nestjs/observe link
+npm run build
+NODE_ENV=production npm run start:prod
 ```
 
-It installs `@nestjs/observe`, wires it into `AppModule` and `main.ts`, and writes the app key and secret into `.env`, which every `nest start` script (`start`, `start:dev`, `start:debug`) then loads. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
+`start:prod` ejecuta `dist/main.js`. La compilación requiere las dependencias de
+desarrollo. En el despliegue, establecer `NODE_ENV=production` en el entorno del
+servicio y proporcionar las variables de conexión. El nombre del script por sí
+solo no cambia `NODE_ENV`.
 
-Or do it by hand:
+El proceso sirve HTTP. La publicación con HTTPS y la configuración del proxy
+se completarán al elegir el entorno de despliegue. La conexión TLS a RDS es
+independiente del HTTPS entre el móvil y la API.
 
-```bash
-$ npm install @nestjs/observe
-```
+## Comprobaciones de salud
 
-Then follow the [setup guide](https://docs.nestjs.com/observability/sdk) - it takes a single import and an app key.
+| Ruta pública        | Resultado                                                 |
+| ------------------- | --------------------------------------------------------- |
+| `GET /health/live`  | 200 si el proceso atiende HTTP; no consulta dependencias. |
+| `GET /health/ready` | 200 si responde PostgreSQL; 503 genérico si falla.        |
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+Ambas usan `Cache-Control: no-store`. Readiness comparte la prueba pendiente
+entre solicitudes simultáneas. Usa hasta 10 segundos para adquirir conexión y
+1 segundo para la consulta; configurar un supervisor con un timeout superior
+a ese presupuesto nominal. Los fallos de NVD/KEV no forman parte de readiness.
 
-## Resources
+## Documentación del proyecto
 
-Check out a few resources that may come in handy when working with NestJS:
+- [Contrato OpenAPI](docs/hogarscan_openapi.yaml).
+- [Evaluación básica y preparación de fuentes](docs/evaluations.md).
+- [Política de consumo de NVD y CISA KEV](docs/external-sources-policy.md).
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+El equipo trabaja mediante ramas por bloque funcional, varios commits pequeños
+por rama y Pull Requests hacia `develop`.

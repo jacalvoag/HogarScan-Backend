@@ -1,6 +1,9 @@
+import { isIP } from 'node:net';
+
 export interface Environment {
   NODE_ENV: 'development' | 'test' | 'production';
   PORT: number;
+  API_HOST: string;
 }
 
 export function validateEnvironment(
@@ -22,7 +25,8 @@ export function validateEnvironment(
 
   if (
     typeof rawPort !== 'string' ||
-    !/^\d+$/.test(rawPort) ||
+    rawPort.length === 0 ||
+    /[^0-9]/.test(rawPort) ||
     !Number.isInteger(port) ||
     port < 1 ||
     port > 65535
@@ -30,5 +34,11 @@ export function validateEnvironment(
     throw new Error('PORT debe ser un entero entre 1 y 65535.');
   }
 
-  return { ...values, NODE_ENV: nodeEnv, PORT: port };
+  const host = values.API_HOST === undefined ? '0.0.0.0' : values.API_HOST;
+
+  if (typeof host !== 'string' || isIP(host) === 0) {
+    throw new Error('API_HOST debe ser una dirección IPv4 o IPv6 literal.');
+  }
+
+  return { ...values, NODE_ENV: nodeEnv, PORT: port, API_HOST: host };
 }
