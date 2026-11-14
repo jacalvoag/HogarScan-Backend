@@ -147,7 +147,7 @@ jobs:
         shell: bash
         run: |
           parameters=$(jq -cn \
-            --arg command "/usr/local/sbin/hogarscan-deploy-release $RELEASE_ID" \
+            --arg command "/usr/local/sbin/hogarscan-deploy-release $RELEASE_ID && /usr/local/sbin/hogarscan-prune-releases --apply" \
             '{commands: [$command], executionTimeout: ["900"]}')
 
           command_id=$(aws ssm send-command \

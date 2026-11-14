@@ -179,6 +179,10 @@ sudo /usr/local/sbin/hogarscan-prune-releases --apply
 Esta limpieza actúa sobre las versiones locales de EC2. Los paquetes de S3
 tienen una política de conservación independiente.
 
+El workflow ejecuta la limpieza después de cada despliegue exitoso mediante
+SSM. Si el instalador falla, la limpieza no se ejecuta. Si la limpieza falla,
+el job informa el error aunque la nueva versión ya haya quedado activa.
+
 ### Diagnóstico desde EC2
 
 ```bash
