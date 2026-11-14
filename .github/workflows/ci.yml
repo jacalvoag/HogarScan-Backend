@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
-      artifact-name: hogarscan-api-${{ github.run_id }}-${{ github.run_attempt }}
+      artifact_name: hogarscan-api-${{ github.run_id }}-${{ github.run_attempt }}
     env:
       NODE_ENV: test
 
