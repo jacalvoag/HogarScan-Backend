@@ -10,12 +10,14 @@ import { DatabaseModule } from './shared/database/database.module.js';
 import { AuthModule } from './modules/auth/auth.public.js';
 import { EvaluationsModule } from './modules/evaluations/evaluations.module.js';
 import { ScanSummariesModule } from './modules/scan-summaries/scan-summaries.module.js';
+import { externalSourcesConfig } from './config/external-sources.config.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnvironment,
+      load: [externalSourcesConfig],
     }),
     DatabaseModule,
     AuthModule,

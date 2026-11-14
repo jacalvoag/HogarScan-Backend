@@ -17,15 +17,18 @@ info:
     revisión son UUID generados una vez por el teléfono. Las fechas son RFC 3339
     en UTC. Se rechazan propiedades adicionales en los objetos de entrada.
 
-    Estado: contrato de diseño, pendiente de implementación del backend. Esta
-    revisión no acredita endpoints desplegados. Cada cuerpo JSON admite como
+    Estado: autenticación, evaluación TCP básica y resúmenes implementados;
+    integración real de NVD y CISA KEV pendiente. Esta revisión no acredita
+    endpoints desplegados. Cada cuerpo JSON admite como
     máximo 16384 bytes UTF-8, comprobados antes de parsearlo; los cuerpos
     comprimidos no se admiten. No se aceptan claves JSON duplicadas ni coerción
     de tipos. Los errores no incluyen tokens, contraseñas, SQL ni trazas.
     El formato de fechas de este contrato es UTC con Z y precisión máxima de
     milisegundos. Los ejemplos son ilustrativos, sin credenciales utilizables.
     Las reglas relacionales descritas requieren validación del backend además
-    de los esquemas OpenAPI. Nunca se envían secretos a NVD ni a CISA KEV.
+    de los esquemas OpenAPI. Nunca se envían credenciales de usuarios ni tokens
+    de sesión a NVD o CISA KEV. La clave propia de NVD, si se configura, se usa
+    exclusivamente para autenticar solicitudes a ese proveedor.
   x-revision-notes: [Se separan RegisterRequest y LoginRequest y se añade GET /auth/me., Se restringen resúmenes a 254 direcciones y seis puertos del piloto., DELETE /me/scans requiere
       la generación esperada para proteger reintentos., HTTPS exige HTTPS_RESPONSE; TLS_HANDSHAKE deja de ser evidencia de HTTPS., Las fechas locales se conservan aunque el reloj retroceda
       durante la revisión., Los agregados de categorías no reutilizan el máximo por revisión.]

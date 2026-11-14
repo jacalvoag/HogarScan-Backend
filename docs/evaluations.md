@@ -24,14 +24,15 @@ Una coincidencia posible no confirma que un dispositivo sea vulnerable.
 Los tipos del dominio describen datos ya decodificados. Las funciones de
 construcción comprueban las invariantes indicadas en su implementación; no son
 un validador de JSON ni reemplazan los esquemas estrictos del borde HTTP. Los
-controladores y la consulta de fuentes externas se desarrollarán posteriormente.
+controladores básicos ya están integrados; la consulta real de fuentes externas
+sigue pendiente.
 
 ## Interpretación TCP básica
 
 El motor es determinista y no consulta fuentes externas ni guarda información.
 Devuelve la versión de reglas y los hallazgos en el orden de las observaciones.
-La versión y los identificadores están definidos en `basic-rules.ts`; la futura
-implementación de `GET /rules` debe utilizar esa misma fuente.
+La versión y los identificadores están definidos en `basic-rules.ts`;
+`GET /rules` utiliza esa misma fuente.
 
 | Regla                 | Interpretación                                                                         |
 | --------------------- | -------------------------------------------------------------------------------------- |
@@ -99,11 +100,13 @@ registros antes de consultar pertenencia. Una fuente omitida o indisponible no
 se interpreta como resultado negativo. Los casos de uso preparados distinguen
 los estados y propagan cancelaciones; todavía no están conectados al módulo HTTP.
 
-Antes de realizar llamadas reales hay que acordar con José la configuración,
-límites de tamaño, tiempo, concurrencia, paginación y caché. También falta
-implementar la resolución fiable de identificación a CPE, la compatibilidad con
-otras formas CPE y la selección de comparadores respaldada por evidencia, además
-de la integración completa. La API actual sigue sin consultar NVD ni KEV.
+La configuración de límites está definida en `external-sources.config.ts` y
+registrada en `AppModule`. Su aplicación por los adaptadores se rige por la
+[política de fuentes externas](external-sources-policy.md). Las fuentes permanecen
+deshabilitadas hasta integrar los controles y completar las pruebas. También falta
+la resolución fiable de identificación a CPE y la integración completa; cualquier
+forma CPE o comparación de versiones no soportada conserva un resultado inconcluso.
+La API actual sigue sin consultar NVD ni KEV.
 
 Referencias oficiales: [esquema de NVD CVE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema)
 y [esquema de NVD CPE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cpe_api_json_2.0.schema)
