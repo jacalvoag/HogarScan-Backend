@@ -8,6 +8,10 @@ export interface ApiError {
     | 'SERVICE_UNAVAILABLE'
     | 'INTERNAL_ERROR'
     | 'EMAIL_ALREADY_REGISTERED'
-    | 'INVALID_CREDENTIALS';
+    | 'INVALID_CREDENTIALS'
+    | 'SUMMARY_CONFLICT'
+    | 'STALE_SUMMARY_GENERATION'
+    | 'INVALID_SUMMARY_GENERATION';
   message: string;
+  details?: { current_summary_generation: number };
 }

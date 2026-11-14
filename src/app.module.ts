@@ -9,6 +9,7 @@ import { StrictSchemaValidationPipe } from './shared/http/strict-schema-validati
 import { DatabaseModule } from './shared/database/database.module.js';
 import { AuthModule } from './modules/auth/auth.public.js';
 import { EvaluationsModule } from './modules/evaluations/evaluations.module.js';
+import { ScanSummariesModule } from './modules/scan-summaries/scan-summaries.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { EvaluationsModule } from './modules/evaluations/evaluations.module.js';
     DatabaseModule,
     AuthModule,
     EvaluationsModule,
+    ScanSummariesModule,
   ],
   controllers: [AppController],
   providers: [
