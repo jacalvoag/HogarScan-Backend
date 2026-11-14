@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "GitHubDevelopOnly",
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::340514595798:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:jacalvoag@230941869/HogarScan-Backend@1447798480:ref:refs/heads/develop"
+        }
+      }
+    }
+  ]
+}
