@@ -62,7 +62,8 @@ paths:
                 properties:
                   status: {type: string, enum: [ok]}
               example: {status: ok}
-    /health/ready:
+              
+  /health/ready:
     get:
       tags: [Operación]
       operationId: getReadiness
