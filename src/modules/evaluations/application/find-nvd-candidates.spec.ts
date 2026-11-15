@@ -1,4 +1,5 @@
 import { FindNvdCandidates } from './find-nvd-candidates.js';
+import { ExternalSourceError } from './ports/external-source-result.js';
 import type { NvdCandidateSource } from './ports/vulnerability-sources.js';
 
 describe('FindNvdCandidates', () => {
@@ -31,14 +32,15 @@ describe('FindNvdCandidates', () => {
       totalResults: 0,
       candidates: [],
     };
-    search.mockResolvedValueOnce(page);
+    const original = new Date('2026-11-10T00:00:00.000Z');
+    search.mockResolvedValueOnce({ value: page, obtainedAt: original });
     await expect(lookup.execute(identification, signal)).resolves.toEqual({
       state: 'AVAILABLE',
-      checkedAt: date,
+      checkedAt: original,
       page,
     });
     expect(search).toHaveBeenCalledExactlyOnceWith(identification, 0, signal);
-    search.mockRejectedValueOnce(new Error('PRIVATE_PROVIDER_DETAIL'));
+    search.mockRejectedValueOnce(new ExternalSourceError('UNAVAILABLE'));
     await expect(lookup.execute(identification, signal)).resolves.toEqual({
       state: 'UNAVAILABLE',
       checkedAt: date,
@@ -59,14 +61,22 @@ describe('FindNvdCandidates', () => {
     search.mockImplementationOnce(async () => {
       controller.abort();
       return {
-        startIndex: 0,
-        resultsPerPage: 0,
-        totalResults: 0,
-        candidates: [],
+        value: {
+          startIndex: 0,
+          resultsPerPage: 0,
+          totalResults: 0,
+          candidates: [],
+        },
+        obtainedAt: date,
       };
     });
     await expect(
       lookup.execute(identification, controller.signal),
     ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('propagates programming errors rather than treating them as provider failures', async () => {
+    search.mockRejectedValueOnce(new Error('bug'));
+    await expect(lookup.execute(identification, signal)).rejects.toThrow('bug');
   });
 });

@@ -1,4 +1,5 @@
 import { CheckKevMembership } from './check-kev-membership.js';
+import { ExternalSourceError } from './ports/external-source-result.js';
 import type { KevCatalogSource } from './ports/vulnerability-sources.js';
 
 describe('CheckKevMembership', () => {
@@ -22,14 +23,18 @@ describe('CheckKevMembership', () => {
   it.each([true, false])(
     'reports %s only after a successful catalog check',
     async (inKev) => {
+      const original = new Date('2026-11-10T00:00:00Z');
       load.mockResolvedValueOnce({
-        catalogVersion: 'test',
-        dateReleased: '2026-11-11T00:00:00Z',
-        contains: () => inKev,
+        obtainedAt: original,
+        value: {
+          catalogVersion: 'test',
+          dateReleased: '2026-11-11T00:00:00Z',
+          contains: () => inKev,
+        },
       });
       await expect(check.execute('CVE-2026-1234', signal)).resolves.toEqual({
         state: 'AVAILABLE',
-        checkedAt: date,
+        checkedAt: original,
         inKev,
       });
       expect(load).toHaveBeenCalledExactlyOnceWith(signal);
@@ -37,7 +42,7 @@ describe('CheckKevMembership', () => {
   );
 
   it('does not treat provider errors as an absent CVE', async () => {
-    load.mockRejectedValueOnce(new Error('PRIVATE_PROVIDER_DETAIL'));
+    load.mockRejectedValueOnce(new ExternalSourceError('UNAVAILABLE'));
     await expect(check.execute('CVE-2026-1234', signal)).resolves.toEqual({
       state: 'UNAVAILABLE',
       checkedAt: date,
@@ -62,13 +67,21 @@ describe('CheckKevMembership', () => {
     load.mockImplementationOnce(async () => {
       controller.abort();
       return {
-        catalogVersion: 'test',
-        dateReleased: '2026-11-11T00:00:00Z',
-        contains: () => true,
+        obtainedAt: date,
+        value: {
+          catalogVersion: 'test',
+          dateReleased: '2026-11-11T00:00:00Z',
+          contains: () => true,
+        },
       };
     });
     await expect(
       check.execute('CVE-2026-1234', controller.signal),
     ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('propagates programming errors without presenting a false provider failure', async () => {
+    load.mockRejectedValueOnce(new Error('bug'));
+    await expect(check.execute('CVE-2026-1234', signal)).rejects.toThrow('bug');
   });
 });

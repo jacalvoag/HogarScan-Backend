@@ -1,4 +1,5 @@
 import type { ProductIdentification } from '../domain/product-identification.js';
+import { ExternalSourceError } from './ports/external-source-result.js';
 import type {
   NvdCandidatePage,
   NvdCandidateSource,
@@ -28,11 +29,16 @@ export class FindNvdCandidates {
       return { state: 'NOT_QUERIED', checkedAt: null };
     signal.throwIfAborted();
     try {
-      const page = await this.source.search(identification, 0, signal);
+      const { value: page, obtainedAt } = await this.source.search(
+        identification,
+        0,
+        signal,
+      );
       signal.throwIfAborted();
-      return { state: 'AVAILABLE', checkedAt: this.now(), page };
-    } catch {
+      return { state: 'AVAILABLE', checkedAt: obtainedAt, page };
+    } catch (error) {
       signal.throwIfAborted();
+      if (!(error instanceof ExternalSourceError)) throw error;
       return { state: 'UNAVAILABLE', checkedAt: this.now() };
     }
   }

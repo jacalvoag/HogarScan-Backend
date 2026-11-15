@@ -1,4 +1,5 @@
 import type { KevCatalogSource } from './ports/vulnerability-sources.js';
+import { ExternalSourceError } from './ports/external-source-result.js';
 
 export type KevLookupResult =
   | {
@@ -34,12 +35,13 @@ export class CheckKevMembership {
       throw new Error('Invalid CVE identifier');
     signal.throwIfAborted();
     try {
-      const catalog = await this.source.load(signal);
+      const { value: catalog, obtainedAt } = await this.source.load(signal);
       signal.throwIfAborted();
       const inKev = catalog.contains(cve);
-      return { state: 'AVAILABLE', checkedAt: this.now(), inKev };
-    } catch {
+      return { state: 'AVAILABLE', checkedAt: obtainedAt, inKev };
+    } catch (error) {
       signal.throwIfAborted();
+      if (!(error instanceof ExternalSourceError)) throw error;
       return { state: 'UNAVAILABLE', checkedAt: this.now(), inKev: null };
     }
   }
