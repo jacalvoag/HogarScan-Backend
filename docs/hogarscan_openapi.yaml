@@ -19,8 +19,9 @@ info:
 
     Estado: autenticación, evaluación TCP, resúmenes e integración de NVD y
     CISA KEV implementados. Las fuentes externas están deshabilitadas por
-    defecto y su activación depende del entorno. La aceptación positiva del
-    recorrido completo con ambas fuentes por HTTPS permanece pendiente.
+    defecto y su activación depende del entorno. El recorrido completo con
+    ambas fuentes por HTTPS cuenta con una prueba de aceptación positiva
+    para las reglas 0.3.0, documentada con sus condiciones y limitaciones.
     Una fuente indisponible conserva la interpretación básica y no equivale
     a una búsqueda sin resultados. Cada cuerpo JSON admite como
     máximo 16384 bytes UTF-8, comprobados antes de parsearlo; los cuerpos

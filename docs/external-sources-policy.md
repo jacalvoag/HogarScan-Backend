@@ -10,8 +10,8 @@ HTTP están implementados e integrados mediante el PR #33.
 `EXTERNAL_SOURCES_ENABLED` es `false` por defecto; su activación depende del
 entorno.
 
-La evidencia de pruebas y la aceptación positiva pendiente del recorrido
-completo por HTTPS se describen en
+La evidencia de pruebas, incluida la aceptación positiva del recorrido
+completo por HTTPS con las reglas 0.3.0, se describe en
 [integración y aceptación](evaluations-external-integration.md).
 
 Las referencias son [la configuración](../src/config/external-sources.config.ts),
@@ -239,9 +239,10 @@ La configuración de ejemplo conserva las fuentes deshabilitadas.
 La activación por entorno se coordina con José y debe considerar los límites
 validados y la disponibilidad de los proveedores.
 
-Se comprobaron consultas reales independientes y el comportamiento de
-degradación por HTTPS. La aceptación positiva del recorrido completo
-permanece pendiente, según el documento de integración y aceptación.
+Se comprobaron consultas reales independientes, el comportamiento de
+degradación y un recorrido positivo completo por HTTPS con las reglas 0.3.0.
+La evidencia se conserva en el documento de integración y aceptación.
+Estos resultados no garantizan la disponibilidad futura de los proveedores.
 
 Las pruebas automatizadas de CI no requieren credenciales reales, RDS
 ni conexión a NVD o CISA.

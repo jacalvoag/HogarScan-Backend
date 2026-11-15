@@ -228,9 +228,9 @@ se administran fuera de este documento.
 - Una fuente indisponible no equivale a una búsqueda sin resultados.
 - La ausencia de coincidencias no acredita que un dispositivo sea seguro.
 
-La integración de fuentes externas está implementada. Su evidencia de
-pruebas y la aceptación pendiente del recorrido completo por HTTPS se
-documentan por separado.
+La integración de fuentes externas está implementada. Las pruebas
+automatizadas, la aceptación del recorrido completo por HTTPS y sus
+limitaciones se documentan por separado.
 
 ## Documentación
 

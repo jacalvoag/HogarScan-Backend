@@ -130,7 +130,9 @@ Las pruebas automatizadas utilizan fuentes simuladas. La evidencia manual
 contra proveedores y por HTTPS se registra en
 [integración y aceptación](evaluations-external-integration.md).
 
-La aceptación positiva del recorrido completo por HTTPS permanece pendiente.
+El recorrido completo por HTTPS se comprobó con las reglas 0.3.0,
+incluyendo una coincidencia posible y su pertenencia a KEV.
+La evidencia y las limitaciones del caso están en el documento de integración.
 Una lista vacía, una fuente indisponible o una condición inconclusa no
 acreditan que un dispositivo sea seguro.
 

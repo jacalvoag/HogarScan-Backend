@@ -38,7 +38,7 @@ o el catálogo validado, aplica TTL y límites de entradas y bytes, y conserva
 la fecha de obtención. La desconexión cancela la consulta en curso. El
 presupuesto abarca la espera, consulta y procesamiento.
 
-`GET /rules` y `POST /evaluations` comparten la versión `0.2.0` por la incorporación
+`GET /rules` y `POST /evaluations` comparten la versión `0.3.0` por la incorporación
 de la regla `NVD_POSSIBLE_MATCH`. La fecha de la versión es fija y la respuesta
 usa los campos y estados de OpenAPI existentes.
 
@@ -100,19 +100,53 @@ también conservaron una respuesta válida con ese estado de indisponibilidad.
 El HTTP 503 observado no acredita un problema de clave API ni justifica
 aumentar los límites de paginación o añadir reintentos automáticos.
 
-## Aceptación pendiente
+## Aceptación positiva por HTTPS
 
-Queda pendiente acreditar una evaluación completa por HTTPS que resuelva
-un CPE compatible, genere una coincidencia CVE sustentada y compruebe
-su pertenencia a KEV dentro del mismo flujo.
+El 15 de noviembre de 2026 se completó la aceptación del recorrido
+HTTPS → diccionario CPE de NVD → búsqueda CVE → catálogo CISA KEV
+con las reglas 0.3.0.
 
-Las consultas independientes a proveedores y las pruebas con fuentes
-simuladas no sustituyen esa aceptación. El caso propuesto utiliza Apache
-HTTP Server 2.4.49 y CVE-2021-41773; su resultado debe comprobarse contra
-los datos publicados y disponibles al ejecutar la prueba.
+La prueba utilizó una identificación declarada de Apache HTTP Server 2.4.49.
+No se instaló el producto ni se escaneó un dispositivo para esta comprobación.
 
-Una lista vacía de coincidencias o una fuente indisponible no demuestra
-que un dispositivo sea seguro.
+La evaluación comenzó en `2026-11-15T09:24:24.559Z` y la solicitud HTTP
+terminó en 29430 ms, dentro del presupuesto de 45000 ms.
+
+El resultado incluyó NVD y KEV en `AVAILABLE`, cuatro hallazgos y tres
+coincidencias posibles:
+
+| CVE            | Pertenencia a KEV |
+| -------------- | ----------------- |
+| CVE-2021-41524 | false             |
+| CVE-2021-41773 | true              |
+| CVE-2021-42013 | true              |
+
+La fecha de los datos CVE utilizados fue `2026-11-15T09:24:42.213Z`.
+La fecha conjunta de fuentes fue `2026-11-15T09:24:33.050Z`, conservando
+la procedencia más antigua utilizada por la evaluación.
+
+El script de aceptación comprobó:
+
+- Disponibilidad pública por HTTPS.
+- Publicación de reglas 0.3.0.
+- Registro e inicio de sesión.
+- Coincidencia entre la versión publicada y la utilizada para evaluar.
+- Disponibilidad de ambas fuentes.
+- Presencia de CVE-2021-41773 con `in_kev=true`.
+- Hallazgo asociado con categoría `POSSIBLE_CVE_MATCH`,
+  confianza `POSSIBLE` y regla `NVD_POSSIBLE_MATCH`.
+- Advertencia explícita sobre los datos adicionales de `affected`
+  que no se interpretan.
+- Formato válido de las fechas de procedencia.
+- Cierre de sesión con HTTP 204.
+
+Esta aceptación acredita el recorrido para el caso y las condiciones
+observadas. No garantiza disponibilidad permanente de los proveedores
+ni confirma vulnerabilidades en dispositivos reales.
+
+Las pruebas previas de indisponibilidad y degradación conservan su validez.
+Una fuente no disponible o una lista vacía no demuestra que un dispositivo
+sea seguro.
 
 ## Criterio de coincidencia de la versión 0.3.0
 
@@ -126,6 +160,9 @@ descartar afectación. Los hallazgos comunican esta limitación.
 Se conservan las comprobaciones de estado, condiciones, negaciones,
 requisitos desconocidos y rangos de versión no soportados. `affected`
 por sí solo no genera coincidencias.
+
+La aceptación positiva del recorrido desplegado sigue pendiente hasta
+repetir y comprobar la prueba por HTTPS con esta versión.
 
 La aceptación positiva del recorrido desplegado sigue pendiente hasta
 repetir y comprobar la prueba por HTTPS con esta versión.
