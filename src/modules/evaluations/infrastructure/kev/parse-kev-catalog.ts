@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { InvalidExternalPayloadError } from '../../application/ports/external-source-result.js';
 import type { KevCatalog } from '../../application/ports/vulnerability-sources.js';
 
 const cveId = z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,}(?![\s\S])/);
@@ -36,7 +37,7 @@ const catalogSchema = z
 /** A malformed or incomplete catalog must never be interpreted as an empty one. */
 export function parseKevCatalog(payload: unknown): KevCatalog {
   const result = catalogSchema.safeParse(payload);
-  if (!result.success) throw new Error('Invalid KEV catalog');
+  if (!result.success) throw new InvalidExternalPayloadError('KEV');
   const { catalogVersion, dateReleased, vulnerabilities } = result.data;
   const ids = new Set(vulnerabilities.map(({ cveID }) => cveID));
   return {

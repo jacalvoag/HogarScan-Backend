@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { InvalidExternalPayloadError } from '../../application/ports/external-source-result.js';
 import type { CpeDictionaryPage } from '../../application/ports/cpe-dictionary.js';
 
 const nvdDate = z.iso.datetime({ offset: true, local: true });
@@ -67,7 +68,7 @@ const response = z
 /** Parses search candidates only; the CPE name is not matched to a device. */
 export function parseCpeDictionaryPage(payload: unknown): CpeDictionaryPage {
   const result = response.safeParse(payload);
-  if (!result.success) throw new Error('Invalid CPE dictionary response');
+  if (!result.success) throw new InvalidExternalPayloadError('CPE');
   const page = result.data;
   return {
     startIndex: page.startIndex,

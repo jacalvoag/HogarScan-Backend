@@ -1,4 +1,4 @@
-import { BASIC_RULE_IDS, BASIC_RULESET_VERSION } from './basic-rules.js';
+import { BASIC_RULE_IDS, EVALUATION_RULESET_VERSION } from './basic-rules.js';
 import { createEvaluationInput } from './evaluation-input.js';
 import type { EvaluationInput } from './evaluation-input.js';
 import type { Finding } from './finding.js';
@@ -92,5 +92,5 @@ export function interpretBasicTcp(input: EvaluationInput): BasicInterpretation {
     }
   }
 
-  return { rulesetVersion: BASIC_RULESET_VERSION, findings };
+  return { rulesetVersion: EVALUATION_RULESET_VERSION, findings };
 }

@@ -2,6 +2,14 @@ import type {
   CpeDictionaryCandidate,
   CpeDictionaryPage,
 } from './ports/cpe-dictionary.js';
+import { ExternalSourceError } from './ports/external-source-result.js';
+
+class CpePageSequenceError extends ExternalSourceError {
+  constructor() {
+    super('INVALID_RESPONSE');
+    this.message = 'Inconsistent CPE pages';
+  }
+}
 
 export interface CpePageCollection {
   readonly state: 'PAGES_COMPLETE' | 'PAGES_PARTIAL';
@@ -17,7 +25,7 @@ export function collectCpePages(
   if (first === undefined) throw new Error('At least one CPE page is required');
   const total = first.totalResults;
   if (!Number.isSafeInteger(total) || total < 0)
-    throw new Error('Inconsistent CPE pages');
+    throw new CpePageSequenceError();
   const seen = new Set<string>();
   const candidates: CpeDictionaryCandidate[] = [];
 
@@ -31,11 +39,11 @@ export function collectCpePages(
       (page.candidates.length === 0 && candidates.length < total) ||
       candidates.length + page.candidates.length > total
     ) {
-      throw new Error('Inconsistent CPE pages');
+      throw new CpePageSequenceError();
     }
     for (const candidate of page.candidates) {
       const key = candidate.id.toLowerCase();
-      if (seen.has(key)) throw new Error('Inconsistent CPE pages');
+      if (seen.has(key)) throw new CpePageSequenceError();
       seen.add(key);
       candidates.push(candidate);
     }
