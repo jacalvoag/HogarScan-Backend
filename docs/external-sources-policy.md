@@ -2,11 +2,17 @@
 
 ## Alcance y estado
 
-Esta política define el trabajo de integración de NVD y CISA KEV para el piloto
-de HogarScan. La configuración está registrada y validada al iniciar la API.
-Los adaptadores reales y los controles descritos aquí están pendientes de
-implementación. `EXTERNAL_SOURCES_ENABLED` permanece en `false` hasta completar
-la integración y sus pruebas.
+Esta política define los controles de consumo de NVD y CISA KEV para el piloto
+de HogarScan. La configuración se registra y valida al iniciar la API.
+
+Los adaptadores, la planificación compartida, la caché y el enriquecimiento
+HTTP están implementados e integrados mediante el PR #33.
+`EXTERNAL_SOURCES_ENABLED` es `false` por defecto; su activación depende del
+entorno.
+
+La evidencia de pruebas y la aceptación positiva pendiente del recorrido
+completo por HTTPS se describen en
+[integración y aceptación](evaluations-external-integration.md).
 
 Las referencias son [la configuración](../src/config/external-sources.config.ts),
 [las variables de ejemplo](../.env.example) y el
@@ -18,9 +24,10 @@ Las referencias son [la configuración](../src/config/external-sources.config.ts
   resúmenes y preparación del despliegue.
 - El compañero implementa clientes, resolución CPE, caché, planificación de
   consultas e integración dentro de `src/modules/evaluations`.
-- Tras integrar configuración y política en `develop`, el compañero crea
-  `feat/evaluations-integration` desde un `develop` actualizado y conserva
-  varios commits pequeños en esa rama.
+- La integración de fuentes externas se incorporó a `develop` mediante
+  `feat/evaluations-integration`. Los cambios posteriores parten de un
+  `develop` actualizado y se agrupan por bloque funcional, con varios
+  commits pequeños por rama.
 - Los PR tienen como destino `develop`. Los cambios a dependencias, archivos
   compartidos y contrato público se coordinan con José antes de implementarlos.
 - `EvaluationsModule` ya está registrado: la integración de sus proveedores
@@ -31,22 +38,22 @@ Las referencias son [la configuración](../src/config/external-sources.config.ts
 Inyectar `externalSourcesConfig.KEY` usando el tipo `ExternalSourcesConfig`.
 Las variables se validan incluso cuando las fuentes están deshabilitadas.
 
-| Propiedad | Valor inicial | Significado |
-| --- | --- | --- |
-| `enabled` | `false` | Habilitación de todo el enriquecimiento externo. |
-| `requestTimeoutMs` | `10000` | Tiempo máximo de una operación HTTP externa. |
-| `evaluationBudgetMs` | `45000` | Presupuesto compartido por toda la evaluación. |
-| `maxConcurrentRequests` | `1` | Operaciones HTTP externas activas. |
-| `maxQueuedRequests` | `8` | Operaciones pendientes en la cola común. |
-| `nvdMinIntervalMs` | `10000` | Separación mínima entre inicios de llamadas a NVD. |
-| `nvdMaxResponseBytes` | `2097152` | Máximo por respuesta de NVD, en bytes. |
-| `nvdPageSize` | `50` | Registros solicitados por página NVD. |
-| `nvdMaxPages` | `2` | Páginas máximas por búsqueda CPE o CVE. |
-| `kevMaxResponseBytes` | `5242880` | Máximo del catálogo KEV, en bytes. |
-| `cacheTtlSeconds` | `3600` | Vigencia desde la obtención de cada entrada. |
-| `cacheMaxEntries` | `50` | Entradas máximas de la caché compartida. |
-| `cacheMaxBytes` | `8388608` | Presupuesto de datos cacheados. |
-| `nvdApiKey` | Ausente | Credencial opcional destinada exclusivamente a NVD. |
+| Propiedad               | Valor inicial | Significado                                         |
+| ----------------------- | ------------- | --------------------------------------------------- |
+| `enabled`               | `false`       | Habilitación de todo el enriquecimiento externo.    |
+| `requestTimeoutMs`      | `10000`       | Tiempo máximo de una operación HTTP externa.        |
+| `evaluationBudgetMs`    | `45000`       | Presupuesto compartido por toda la evaluación.      |
+| `maxConcurrentRequests` | `1`           | Operaciones HTTP externas activas.                  |
+| `maxQueuedRequests`     | `8`           | Operaciones pendientes en la cola común.            |
+| `nvdMinIntervalMs`      | `10000`       | Separación mínima entre inicios de llamadas a NVD.  |
+| `nvdMaxResponseBytes`   | `2097152`     | Máximo por respuesta de NVD, en bytes.              |
+| `nvdPageSize`           | `50`          | Registros solicitados por página NVD.               |
+| `nvdMaxPages`           | `2`           | Páginas máximas por búsqueda CPE o CVE.             |
+| `kevMaxResponseBytes`   | `5242880`     | Máximo del catálogo KEV, en bytes.                  |
+| `cacheTtlSeconds`       | `3600`        | Vigencia desde la obtención de cada entrada.        |
+| `cacheMaxEntries`       | `50`          | Entradas máximas de la caché compartida.            |
+| `cacheMaxBytes`         | `8388608`     | Presupuesto de datos cacheados.                     |
+| `nvdApiKey`             | Ausente       | Credencial opcional destinada exclusivamente a NVD. |
 
 Estos valores son presupuestos del piloto. La clave de NVD no reduce
 automáticamente los intervalos configurados. El piloto usa una sola instancia
@@ -106,11 +113,14 @@ cuando la solicitud del móvil era válida. El caso de uso debe distinguir estos
 fallos de una cancelación por desconexión del cliente: esta última se propaga
 y no intenta escribir una respuesta en la conexión cerrada.
 
-Los casos de uso actuales propagan señales abortadas. El orquestador deberá
-traducir el vencimiento del presupuesto externo a la degradación anterior,
-sin convertirlo en un error 500 ni ocultar errores internos de programación.
-Los puertos deben distinguir fallos esperados de transporte/proveedor de fallos
-internos; revisar los `catch` generales actuales antes de integrar el flujo.
+El orquestador distingue la desconexión del cliente del vencimiento del
+presupuesto externo. Este último produce degradación de la evaluación,
+sin convertirse en un error 500.
+
+Los fallos esperados de transporte o proveedor se representan mediante
+errores específicos. Los errores internos de programación se propagan
+hacia el tratamiento HTTP de errores y no se ocultan como indisponibilidad
+del proveedor.
 
 ## Lectura y validación de respuestas
 
@@ -185,19 +195,23 @@ fecha de los datos CVE utilizados. `sources.checked_at` es `null` solo con ambas
 fuentes en `NOT_QUERIED`; en otro caso usa la fecha más antigua entre los
 resultados o intentos usados. Servir caché no sustituye esas fechas por la hora actual.
 
-Antes de añadir caché, ampliar los resultados internos de los puertos para
-transportar su procedencia temporal. `FindNvdCandidates` y `CheckKevMembership`
-actualmente asignan `now()` al terminar la llamada: hay que ajustarlos y probarlos
-para que una lectura cacheada conserve la fecha original. Esa ampliación es
-interna y no añade campos a la respuesta pública.
+Los resultados internos transportan su procedencia temporal mediante
+`SourcedValue`. Las lecturas de caché conservan la fecha original de obtención.
+
+`FindNvdCandidates` y `CheckKevMembership` utilizan esa procedencia para
+resultados disponibles y distinguen los fallos esperados de los errores
+internos. Estos datos internos no añaden campos al contrato público.
 
 ## Integración y pruebas de aceptación
 
-El compañero adapta el resultado de aplicación, el controlador asíncrono y el
-mapper dentro de evaluaciones. El mapper actual depende del tipo concreto de
-`EvaluateBasic`; debe admitir el resultado enriquecido sin perder los campos,
-estados, fechas y relaciones del contrato. Si cambian las reglas de interpretación,
-actualizar conjuntamente su versión y fecha fija de publicación.
+`EvaluateWithSources` coordina la interpretación básica y el enriquecimiento.
+El controlador espera el resultado asíncrono y propaga la desconexión del
+cliente. El mapper transforma el resultado enriquecido conservando campos,
+estados, fechas y relaciones del contrato público.
+
+La versión 0.2.0 incorpora `NVD_POSSIBLE_MATCH`. Los cambios futuros de las
+reglas de interpretación deben actualizar conjuntamente su versión y su
+fecha fija de publicación.
 
 Las pruebas automatizadas usan transporte, reloj y esperas controlables:
 
@@ -215,10 +229,16 @@ Las pruebas automatizadas usan transporte, reloj y esperas controlables:
 - Fallo externo devuelve una evaluación básica válida; errores internos se sanitizan.
 - Las respuestas HTTP cumplen OpenAPI y no publican credenciales ni datos locales.
 
-Antes de activar las fuentes, integrar los controles, pasar CI y verificar con
-José una prueba manual limitada contra los proveedores. Mantener la activación
-deshabilitada en el repositorio de ejemplo. Las pruebas de CI no necesitan
-credenciales reales, RDS ni conexión a NVD/CISA.
+La configuración de ejemplo conserva las fuentes deshabilitadas.
+La activación por entorno se coordina con José y debe considerar los límites
+validados y la disponibilidad de los proveedores.
+
+Se comprobaron consultas reales independientes y el comportamiento de
+degradación por HTTPS. La aceptación positiva del recorrido completo
+permanece pendiente, según el documento de integración y aceptación.
+
+Las pruebas automatizadas de CI no requieren credenciales reales, RDS
+ni conexión a NVD o CISA.
 
 ## Referencias
 

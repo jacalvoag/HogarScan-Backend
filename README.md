@@ -1,55 +1,184 @@
 # HogarScan Backend
 
-API de HogarScan desarrollada con NestJS y TypeScript. Interpreta observaciones
-TCP enviadas por la aplicación Android y gestiona cuentas y resúmenes para
-estadísticas. Las revisiones de red se ejecutan en el teléfono.
+Backend de HogarScan, una aplicación Android orientada a la revisión de
+servicios TCP en redes domésticas y a la interpretación de sus resultados.
 
-La integración real de NVD y CISA KEV está en desarrollo. Las fuentes externas
-permanecen deshabilitadas por defecto.
+La API gestiona cuentas y sesiones, interpreta observaciones enviadas por
+la aplicación móvil, consulta fuentes públicas de vulnerabilidades y
+almacena resúmenes para generar estadísticas por usuario.
 
-## Entorno
+Las revisiones de red se ejecutan en el teléfono. El backend recibe las
+observaciones normalizadas y no realiza el escaneo de la red doméstica.
 
-- Node.js 26.13.0 y npm 11.11.0, utilizados también en CI.
-- PostgreSQL en RDS con conexión TLS y verificación del certificado del servidor.
-- Los comandos de este documento usan Bash o Git Bash.
+## Funcionalidades
 
-## Configuración
+### Cuentas y sesiones
 
-En una instalación nueva, crea `.env` a partir de [.env.example](.env.example)
-y completa las variables de conexión. Si ya tienes `.env`, conserva sus valores.
-La aplicación carga ese archivo desde el directorio de ejecución; las variables
-definidas por el entorno tienen prioridad. En un servidor también puedes
-proporcionar las variables sin crear un archivo `.env`.
+- Registro de usuarios e inicio de sesión.
+- Protección de contraseñas mediante Argon2id.
+- Autenticación mediante tokens de sesión opacos.
+- Almacenamiento del hash del token en PostgreSQL.
+- Consulta de la sesión actual y cierre de sesión con revocación.
 
-| Variable                                       | Valor predeterminado | Uso                                            |
-| ---------------------------------------------- | -------------------- | ---------------------------------------------- |
-| `NODE_ENV`                                     | `development`        | Entorno: `development`, `test` o `production`. |
-| `PORT`                                         | `3000`               | Puerto de escucha de la API.                   |
-| `API_HOST`                                     | `0.0.0.0`            | Dirección IP literal donde escucha la API.     |
-| `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Requeridas           | Conexión de la API a PostgreSQL.               |
-| `DB_PORT`                                      | `5432`               | Puerto de PostgreSQL.                          |
-| `DB_SSL_CA_PATH`                               | Requerida            | Ruta al archivo CA regional de RDS.            |
-| `SESSION_TTL_SECONDS`                          | `604800`             | Vigencia de una sesión.                        |
+### Interpretación de observaciones TCP
 
-`API_HOST=127.0.0.1` permite acceso desde el mismo equipo o un proxy local.
-`API_HOST=0.0.0.0` escucha en las interfaces IPv4, útil para pruebas en LAN o un
-contenedor. También se admiten direcciones IPv6 literales. La dirección de
-escucha no es la URL que debe usar el móvil: utiliza la IP accesible del servidor
-o el dominio público del entorno desplegado.
+- Procesamiento de conexiones aceptadas, rechazadas, con tiempo agotado
+  o con errores.
+- Interpretación de evidencia de protocolo cuando se proporciona.
+- Generación de hallazgos con categoría, prioridad, confianza, evidencia,
+  explicación, acción recomendada y limitaciones.
+- Publicación de la versión de reglas utilizada por el motor.
 
-`DB_SSL_CA_PATH` corresponde al equipo donde corre Node. En Windows puede ser
-`C:/certificados/mx-central-1-bundle.pem`; en un servidor Linux será la ruta donde
-se haya colocado o montado ese archivo. El proceso debe poder leerlo y se
-mantiene la verificación TLS. Credenciales y archivos `.env` quedan fuera de Git.
+El alcance del piloto comprende los puertos 22, 23, 80, 443, 445 y 3389.
 
-## Instalación, desarrollo y verificación
+### Consulta de fuentes externas
+
+- Búsqueda de candidatos CPE en el diccionario oficial de NVD.
+- Asociación provisional con la identificación declarada de fabricante,
+  producto y versión.
+- Evaluación de condiciones publicadas para posibles coincidencias CVE.
+- Consulta del catálogo CISA KEV para las coincidencias sustentadas.
+- Control de concurrencia, cola, intervalos, tiempos y tamaños de respuesta.
+- Caché compartida con límites de entradas, bytes y vigencia.
+- Cancelación de operaciones y conservación de la evaluación básica ante
+  fallos de los proveedores.
+
+Las fuentes externas están deshabilitadas por defecto y su activación
+depende de la configuración del entorno.
+
+### Resúmenes y estadísticas
+
+- Registro idempotente de resúmenes de revisión.
+- Estadísticas agregadas y revisiones recientes por cuenta.
+- Aislamiento de información entre usuarios.
+- Borrado de resúmenes con control de generación para impedir que
+  solicitudes antiguas recuperen información eliminada.
+
+Los resúmenes enviados al backend no incluyen direcciones IP ni un
+inventario detallado de los dispositivos de la red.
+
+## Arquitectura
+
+El proyecto utiliza una arquitectura modular con separación entre
+presentación HTTP, casos de uso, dominio e infraestructura.
+
+| Capa            | Responsabilidad                                                                         |
+| --------------- | --------------------------------------------------------------------------------------- |
+| Presentación    | Rutas HTTP, autenticación, validación y transformación de solicitudes y respuestas.     |
+| Aplicación      | Coordinación de casos de uso y definición de puertos para dependencias externas.        |
+| Dominio         | Reglas e invariantes de las evaluaciones.                                               |
+| Infraestructura | Acceso a PostgreSQL, protección de contraseñas y comunicación con proveedores externos. |
+
+Los módulos funcionales principales corresponden a autenticación,
+evaluaciones, resúmenes y estadísticas. Los componentes compartidos
+proporcionan configuración, acceso a base de datos y comportamiento HTTP.
+
+El flujo de evaluación sigue esta secuencia:
+
+1. Validar la sesión y las observaciones recibidas.
+2. Generar la interpretación TCP básica.
+3. Si las fuentes están habilitadas y la identificación es comparable,
+   consultar NVD y evaluar sus condiciones.
+4. Si existen coincidencias CVE sustentadas, comprobar su pertenencia a KEV.
+5. Transformar el resultado al contrato público y responder al cliente.
+
+## Tecnologías
+
+| Componente                | Tecnología           |
+| ------------------------- | -------------------- |
+| Plataforma                | Node.js              |
+| Lenguaje                  | TypeScript           |
+| Framework HTTP            | NestJS sobre Express |
+| Base de datos             | PostgreSQL           |
+| Acceso a datos            | `pg`                 |
+| Validación                | Zod                  |
+| Protección de contraseñas | Argon2id             |
+| Pruebas                   | Vitest y Supertest   |
+| Análisis y formato        | Oxlint y Prettier    |
+| Contrato HTTP             | OpenAPI 3.0.3        |
+| Integración y despliegue  | GitHub Actions y AWS |
+
+El proyecto utiliza módulos ESM. Los imports relativos de TypeScript
+incluyen la extensión `.js` correspondiente al código compilado.
+
+## Requisitos
+
+- Node.js `26.13.0`.
+- npm `11.11.0`.
+- Una base de datos PostgreSQL con el esquema y los permisos del proyecto.
+- El certificado CA correspondiente al servidor PostgreSQL.
+
+## Configuración local
+
+Instala las dependencias respetando el archivo de bloqueo:
 
 ```bash
 npm ci
+```
+
+En una instalación nueva, crea el archivo de configuración:
+
+```bash
+cp .env.example .env
+```
+
+Completa las variables documentadas en
+[`.env.example`](.env.example), incluyendo la conexión a PostgreSQL y
+la ruta del certificado CA.
+
+Si ya existe un archivo `.env`, conserva sus valores. Las credenciales
+y configuraciones privadas no deben incorporarse al repositorio.
+
+La conexión a PostgreSQL utiliza TLS con verificación del certificado
+del servidor. `DB_SSL_CA_PATH` debe indicar una ruta accesible para el
+proceso de Node.js en el equipo donde se ejecuta la API.
+
+## Ejecución
+
+Para desarrollo con recarga automática:
+
+```bash
 npm run start:dev
 ```
 
+Para compilar y ejecutar el resultado en Bash o Git Bash:
+
 ```bash
+npm run build
+NODE_ENV=production npm run start:prod
+```
+
+La ejecución requiere las variables de entorno y el acceso a PostgreSQL.
+El script `start:prod` ejecuta el código compilado; por sí solo no
+establece `NODE_ENV`.
+
+## Rutas principales
+
+| Método | Ruta             | Propósito                                                           |
+| ------ | ---------------- | ------------------------------------------------------------------- |
+| POST   | `/auth/register` | Registrar una cuenta.                                               |
+| POST   | `/auth/login`    | Iniciar sesión.                                                     |
+| GET    | `/auth/me`       | Consultar la identidad y sesión actuales.                           |
+| POST   | `/auth/logout`   | Revocar la sesión actual.                                           |
+| GET    | `/rules`         | Consultar metadatos de las reglas de evaluación.                    |
+| POST   | `/evaluations`   | Interpretar observaciones y realizar el enriquecimiento disponible. |
+| POST   | `/me/scans`      | Registrar un resumen de revisión.                                   |
+| GET    | `/me/stats`      | Consultar estadísticas de la cuenta.                                |
+| DELETE | `/me/scans`      | Eliminar resúmenes mediante el control de generación.               |
+| GET    | `/health/live`   | Comprobar que el proceso atiende solicitudes.                       |
+| GET    | `/health/ready`  | Comprobar la disponibilidad de PostgreSQL desde la API.             |
+
+Los esquemas, requisitos de autenticación, parámetros, respuestas y
+códigos de error se describen en el
+[contrato OpenAPI](docs/hogarscan_openapi.yaml).
+
+La comprobación de readiness no acredita la disponibilidad de NVD ni
+de CISA KEV.
+
+## Verificación
+
+```bash
+npm run validate:openapi
 npx tsc --noEmit
 npm run build
 npm run lint
@@ -57,143 +186,67 @@ npm test
 npm run test:e2e
 ```
 
-## Ejecución del build
+Las pruebas automatizadas utilizan dobles de prueba para las dependencias
+externas. No requieren credenciales reales ni acceso a RDS, NVD o CISA.
 
-```bash
-npm run build
-NODE_ENV=production npm run start:prod
-```
+La validación estructural de OpenAPI complementa las pruebas HTTP;
+no sustituye la comprobación del comportamiento de los endpoints.
 
-`start:prod` ejecuta `dist/main.js`. La compilación requiere las dependencias de
-desarrollo. En el despliegue, establecer `NODE_ENV=production` en el entorno del
-servicio y proporcionar las variables de conexión. El nombre del script por sí
-solo no cambia `NODE_ENV`.
+## Integración y despliegue
 
-En EC2, Node escucha HTTP en `127.0.0.1:3000` y Caddy publica la API mediante
-HTTPS. El servicio usa `API_HOST=127.0.0.1` y `TRUST_LOCAL_PROXY=true`.
-La conexión TLS entre la API y RDS es independiente del HTTPS entre el cliente
-y Caddy.
+GitHub Actions ejecuta la validación del contrato, tipos, compilación,
+análisis estático y pruebas antes de preparar el paquete de despliegue.
 
-## Comprobaciones de salud
+El despliegue utiliza credenciales temporales mediante OIDC, artefactos
+con checksum y ejecución remota administrada. La activación de una versión
+incluye comprobaciones de disponibilidad y restauración de la versión
+anterior ante fallos. La restauración no convierte un despliegue fallido
+en exitoso.
 
-| Ruta pública        | Resultado                                                 |
-| ------------------- | --------------------------------------------------------- |
-| `GET /health/live`  | 200 si el proceso atiende HTTP; no consulta dependencias. |
-| `GET /health/ready` | 200 si responde PostgreSQL; 503 genérico si falla.        |
+También se dispone de conservación y limpieza de versiones instaladas.
 
-Ambas usan `Cache-Control: no-store`. Readiness comparte la prueba pendiente
-entre solicitudes simultáneas. Usa hasta 10 segundos para adquirir conexión y
-1 segundo para la consulta; configurar un supervisor con un timeout superior
-a ese presupuesto nominal. Los fallos de NVD/KEV no forman parte de readiness.
+`develop` es la rama de integración y despliegue de desarrollo. La
+promoción de una versión estable a `main` requiere coordinar los cambios
+del workflow y de la confianza OIDC.
 
-## Documentación del proyecto
+Las direcciones, credenciales y parámetros particulares de cada entorno
+se administran fuera de este documento.
+
+## Alcance y limitaciones
+
+- Una conexión TCP aceptada no demuestra una vulnerabilidad.
+- Un timeout no demuestra que un dispositivo esté ausente.
+- El número de puerto no identifica por sí solo un protocolo o producto.
+- La identificación de fabricante, producto y versión es declarada,
+  no certificada por el backend.
+- Una coincidencia CVE representa una posibilidad sustentada en las
+  condiciones interpretadas, no una vulnerabilidad confirmada.
+- La ambigüedad CPE y las condiciones no soportadas conservan un resultado
+  inconcluso.
+- Los rangos de versión requieren un comparador respaldado para el
+  producto; el flujo actual no presupone un orden universal de versiones.
+- Una fuente indisponible no equivale a una búsqueda sin resultados.
+- La ausencia de coincidencias no acredita que un dispositivo sea seguro.
+
+La integración de fuentes externas está implementada. Su evidencia de
+pruebas y la aceptación pendiente del recorrido completo por HTTPS se
+documentan por separado.
+
+## Documentación
 
 - [Contrato OpenAPI](docs/hogarscan_openapi.yaml).
-- [Evaluación básica y preparación de fuentes](docs/evaluations.md).
+- [Dominio de evaluaciones](docs/evaluations.md).
+- [Integración de fuentes externas y aceptación](docs/evaluations-external-integration.md).
 - [Política de consumo de NVD y CISA KEV](docs/external-sources-policy.md).
 
-El equipo trabaja mediante ramas por bloque funcional, varios commits pequeños
-por rama y Pull Requests hacia `develop`.
+## Contribución
 
-## Proxy local
+El trabajo se organiza mediante ramas por bloque funcional, con varios
+commits pequeños y coherentes por rama. Los Pull Requests se dirigen a
+`develop`.
 
-`TRUST_LOCAL_PROXY=false` es el valor predeterminado y descarta los encabezados
-reenviados al determinar la IP y el protocolo del cliente. Usa `true` cuando
-Caddy esté en el mismo servidor y la API escuche en `127.0.0.1` o `::1`.
-En ese modo Express confía únicamente en conexiones desde loopback. Caddy debe
-reemplazar los encabezados `X-Forwarded-*` recibidos del cliente, como hace por
-defecto. Los límites se aplican por IP; clientes que compartan una IP pública
-también comparten el contador correspondiente.
+Los cambios al contrato público, al esquema de base de datos, a componentes
+compartidos o a la infraestructura se coordinan antes de implementarse.
 
-## Despliegue de desarrollo
-
-La API de desarrollo está disponible en:
-
-https://hogarscan-jacalvoag.duckdns.org
-
-Se ejecuta en una instancia EC2 con Ubuntu, en `mx-central-1`. Caddy administra
-HTTPS y reenvía las solicitudes al servicio `hogarscan-api`, supervisado por
-systemd. PostgreSQL se encuentra en RDS y utiliza TLS con verificación del
-certificado del servidor.
-
-### Despliegue automático
-
-Al integrar cambios en `develop`, GitHub Actions:
-
-1. Ejecuta TypeScript, build, lint y pruebas unitarias y HTTP.
-2. Genera el paquete y comprueba su checksum SHA-256.
-3. Obtiene credenciales temporales de AWS mediante OIDC.
-4. Sube el paquete a S3 y ejecuta el instalador en EC2 mediante SSM.
-5. Comprueba la disponibilidad de la API por HTTPS.
-
-Los pull requests ejecutan las validaciones y generan el paquete. El despliegue
-se ejecuta únicamente para eventos push sobre `develop`.
-
-Cada versión utiliza un identificador compuesto por el SHA del commit, el ID
-de ejecución y el número de intento. Las versiones se instalan en
-`/opt/hogarscan/releases/`; `/opt/hogarscan/current` apunta a la versión activa.
-
-El instalador comprueba la API local y su acceso mediante Caddy. Si falla la
-activación, intenta restaurar la versión y las configuraciones anteriores.
-El despliegue se informa como fallido aunque la restauración termine bien.
-
-Después de un despliegue exitoso, `/opt/hogarscan/previous` apunta a la versión
-que estaba activa anteriormente. Si el despliegue falla, el instalador restaura
-también el estado previo de ese enlace. La limpieza de versiones debe conservar
-los destinos de `current` y `previous`.
-
-### Configuración del servidor
-
-Las variables privadas se encuentran en `/etc/hogarscan/api.env`, con propietario
-`root` y permisos `600`. El certificado regional de RDS está instalado en
-`/etc/hogarscan/certs/mx-central-1-bundle.pem`.
-
-Las credenciales de PostgreSQL permanecen en el servidor y no forman parte
-del paquete de despliegue.
-
-El instalador está en `/usr/local/sbin/hogarscan-deploy-release`. Los cambios
-en ese script requieren actualizar también su copia instalada en EC2.
-
-### Conservación de versiones en EC2
-
-El script `deploy/scripts/prune-releases.sh` conserva los destinos de `current`
-y `previous`, además de cinco versiones adicionales recientes ordenadas por
-la fecha de modificación de sus directorios.
-
-Solo considera directorios con identificadores de versión reconocidos.
-Comparte el bloqueo del instalador y se detiene si los enlaces protegidos
-faltan o tienen destinos inválidos.
-
-Después de instalarlo en EC2, la simulación se ejecuta con:
-
-```bash
-sudo /usr/local/sbin/hogarscan-prune-releases --dry-run
-```
-
-Para aplicar la limpieza:
-
-```bash
-sudo /usr/local/sbin/hogarscan-prune-releases --apply
-```
-
-Esta limpieza actúa sobre las versiones locales de EC2. Los paquetes de S3
-tienen una política de conservación independiente.
-
-El workflow ejecuta la limpieza después de cada despliegue exitoso mediante
-SSM. Si el instalador falla, la limpieza no se ejecuta. Si la limpieza falla,
-el job informa el error aunque la nueva versión ya haya quedado activa.
-
-### Diagnóstico desde EC2
-
-```bash
-sudo systemctl status hogarscan-api --no-pager
-sudo journalctl -u hogarscan-api -n 100 --no-pager
-sudo systemctl status caddy --no-pager
-sudo readlink -f /opt/hogarscan/current
-```
-
-### Publicación estable
-
-`develop` corresponde al entorno de desarrollo. Al publicar la versión estable,
-se realizará un PR hacia `main` y se ajustarán el workflow y la confianza OIDC
-para desplegar desde esa rama.
+Cada Pull Request debe explicar el comportamiento resultante, las pruebas
+realizadas y las limitaciones relevantes.
