@@ -1,4 +1,4 @@
-import type { EvaluateBasic } from '../application/evaluate-basic.js';
+import type { EvaluationResult } from '../application/evaluate-with-sources.js';
 import type { EvaluationInput } from '../domain/evaluation-input.js';
 import type { TcpObservation } from '../domain/tcp-observations.js';
 import type { EvaluationBody } from './evaluation.schema.js';
@@ -44,9 +44,7 @@ export function toEvaluationInput(body: EvaluationBody): EvaluationInput {
     : { observations, identification: body.identification };
 }
 
-export function toEvaluationResponse(
-  result: ReturnType<EvaluateBasic['execute']>,
-) {
+export function toEvaluationResponse(result: EvaluationResult) {
   return {
     ruleset_version: result.rulesetVersion,
     evaluated_at: result.evaluatedAt.toISOString(),
