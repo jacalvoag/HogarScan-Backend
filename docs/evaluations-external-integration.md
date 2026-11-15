@@ -57,3 +57,59 @@ EXTERNAL_SOURCES_ENABLED=true
 EXTERNAL_REQUEST_TIMEOUT_MS=30000
 EXTERNAL_EVALUATION_BUDGET_MS=45000
 ```
+
+El intervalo NVD se mantiene en 10000 ms, con páginas de 50 registros y un
+máximo de dos páginas por búsqueda. El presupuesto de 45000 ms se comparte
+entre las operaciones necesarias para una evaluación.
+
+## Evidencia de aceptación
+
+La revisión del PR #33 acreditó 547 pruebas unitarias y 260 pruebas HTTP
+aprobadas con fuentes simuladas, además de tipos, compilación, lint y
+validación estructural de OpenAPI.
+
+Las pruebas manuales contra proveedores comprobaron:
+
+- Consulta y validación del diccionario CPE de NVD.
+- Búsqueda CVE completa para el CPE oficial de OpenSSH 9.6 utilizado en la
+  prueba directa, con 32 candidatos validados.
+- Descarga y validación del catálogo CISA KEV.
+- Desde EC2, resolución de Apache HTTP Server 2.4.49 a un único CPE vigente
+  y compatible con el resolver.
+- Desde EC2, validación individual de las dos páginas CVE de Apache,
+  con 100 candidatos en total. Estas consultas independientes no
+  acreditan el presupuesto conjunto de una evaluación.
+
+Por HTTPS se comprobaron disponibilidad, publicación de reglas 0.2.0,
+rechazo de evaluaciones sin sesión, registro, login, evaluación básica
+y logout.
+
+Una evaluación con identificación OpenSSH ambigua devolvió NVD `AVAILABLE`
+y KEV `NOT_QUERIED`, conservó el hallazgo básico y no generó coincidencias CVE.
+
+## Indisponibilidad observada
+
+Durante el diagnóstico del flujo de Apache desde EC2, la consulta CPE
+respondió HTTP 200 y pasó la validación. La solicitud CVE posterior recibió
+HTTP 503 de NVD, sin `Retry-After`.
+
+El flujo conservó los hallazgos básicos, marcó NVD `UNAVAILABLE`, dejó KEV
+en `NOT_QUERIED` y omitió coincidencias CVE. Las evaluaciones por HTTPS
+también conservaron una respuesta válida con ese estado de indisponibilidad.
+
+El HTTP 503 observado no acredita un problema de clave API ni justifica
+aumentar los límites de paginación o añadir reintentos automáticos.
+
+## Aceptación pendiente
+
+Queda pendiente acreditar una evaluación completa por HTTPS que resuelva
+un CPE compatible, genere una coincidencia CVE sustentada y compruebe
+su pertenencia a KEV dentro del mismo flujo.
+
+Las consultas independientes a proveedores y las pruebas con fuentes
+simuladas no sustituyen esa aceptación. El caso propuesto utiliza Apache
+HTTP Server 2.4.49 y CVE-2021-41773; su resultado debe comprobarse contra
+los datos publicados y disponibles al ejecutar la prueba.
+
+Una lista vacía de coincidencias o una fuente indisponible no demuestra
+que un dispositivo sea seguro.

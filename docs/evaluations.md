@@ -1,118 +1,140 @@
 # Dominio de evaluaciones
 
-El dominio recibe observaciones TCP normalizadas correspondientes a una sola
-dirección que no se incluye en los datos. Cada evaluación tiene entre una y seis
-observaciones y no puede repetir puertos. Los puertos admitidos para el piloto
-son 22, 23, 80, 443, 445 y 3389.
+El backend interpreta observaciones TCP enviadas por la aplicación móvil.
+Cada evaluación corresponde a una sola dirección, que no se incluye en la
+solicitud, y contiene entre una y seis observaciones sin puertos repetidos.
 
-Los resultados `ACCEPTED`, `REFUSED`, `TIMEOUT` y `ERROR` son distintos. Una
-conexión aceptada no confirma una vulnerabilidad; un timeout no demuestra que
-el dispositivo esté ausente. El número de puerto no identifica por sí solo
-un protocolo, producto ni CVE. La evidencia de protocolo solo acompaña a una
-conexión aceptada y usa las parejas definidas por el contrato.
+Los puertos admitidos por el piloto son 22, 23, 80, 443, 445 y 3389.
+
+## Interpretación de observaciones
+
+Los resultados `ACCEPTED`, `REFUSED`, `TIMEOUT` y `ERROR` son distintos.
+Una conexión aceptada no confirma una vulnerabilidad y un timeout no demuestra
+que un dispositivo esté ausente.
+
+El número de puerto no identifica por sí solo un protocolo, producto o CVE.
+La evidencia de protocolo solo acompaña a una conexión aceptada y debe cumplir
+las combinaciones admitidas por el contrato HTTP.
+
+La interpretación básica es determinista y no consulta proveedores externos.
+
+| Regla                 | Interpretación                                               |
+| --------------------- | ------------------------------------------------------------ |
+| `TCP_ACCEPTED`        | Conexión aceptada, sin inferir una vulnerabilidad.           |
+| `PROTOCOL_IDENTIFIED` | Evidencia explícita de protocolo en una conexión aceptada.   |
+| `TCP_REFUSED`         | Conexión rechazada, sin concluir que el servicio sea seguro. |
+| `TCP_TIMEOUT`         | Tiempo agotado, sin concluir ausencia del dispositivo.       |
+| `TCP_ERROR`           | Error que impide valorar disponibilidad y seguridad.         |
+
+## Identificación y resolución CPE
 
 La identificación de fabricante, producto y versión es opcional y declarada
-por la persona usuaria; no es una identificación verificada. El dominio
-conserva los valores recibidos y comprueba que no estén vacíos ni excedan los
-límites del contrato.
+por la persona usuaria. El backend no certifica su correspondencia con un
+dispositivo real.
 
-Los hallazgos tienen una categoría, prioridad, confianza, evidencia,
-explicación, acción, limitación y regla. Solo la categoría
-`POSSIBLE_CVE_MATCH` incluye un identificador CVE y su confianza es `POSSIBLE`.
-Una coincidencia posible no confirma que un dispositivo sea vulnerable.
+Con fuentes habilitadas e identificación comparable, el flujo consulta el
+diccionario oficial de NVD mediante un filtro `cpeMatchString`.
 
-Los tipos del dominio describen datos ya decodificados. Las funciones de
-construcción comprueban las invariantes indicadas en su implementación; no son
-un validador de JSON ni reemplazan los esquemas estrictos del borde HTTP. Los
-controladores básicos ya están integrados; la consulta real de fuentes externas
-sigue pendiente.
+La resolución exige una búsqueda completa con un único registro vigente.
+Fabricante y producto deben coincidir sin distinguir mayúsculas; la versión
+debe coincidir carácter por carácter. Los siete atributos restantes deben
+ser `*` (ANY). Un `-` (NA) o un atributo específico deja la asociación inconclusa.
 
-## Interpretación TCP básica
+No se selecciona el primer candidato ni se utilizan títulos o referencias
+como prueba de identidad. Los alias, registros obsoletos y sintaxis no
+soportada conservan la incertidumbre.
 
-El motor es determinista y no consulta fuentes externas ni guarda información.
-Devuelve la versión de reglas y los hallazgos en el orden de las observaciones.
-La versión y los identificadores están definidos en `basic-rules.ts`;
-`GET /rules` utiliza esa misma fuente.
+## Evaluación de condiciones NVD
 
-| Regla                 | Interpretación                                                                         |
-| --------------------- | -------------------------------------------------------------------------------------- |
-| `TCP_ACCEPTED`        | Conexión aceptada; prioridad baja, sin inferir vulnerabilidad.                         |
-| `PROTOCOL_IDENTIFIED` | Se añade solo cuando la observación aceptada incluye evidencia explícita de protocolo. |
-| `TCP_REFUSED`         | Conexión rechazada; no se concluye que el servicio sea seguro.                         |
-| `TCP_TIMEOUT`         | Tiempo de espera agotado; no se concluye que el equipo esté ausente.                   |
-| `TCP_ERROR`           | Error de medición; no se concluye disponibilidad ni seguridad.                         |
+El CPE seleccionado procede del diccionario oficial y se utiliza para buscar
+candidatos CVE. La búsqueda debe completar su paginación y comprobar offsets,
+totales, progreso e identificadores duplicados.
 
-Los tres últimos resultados producen hallazgos de evidencia insuficiente con
-prioridad indeterminada. La identificación declarada no genera coincidencias
-CVE: su correlación con fuentes externas queda para una entrega posterior.
+Las configuraciones conservan operadores, negaciones y condiciones publicadas.
+Su evaluación distingue verdadero, falso y desconocido. Los requisitos de otros
+componentes permanecen desconocidos porque no existe un inventario del equipo.
 
-## Módulo HTTP básico
+Solo una configuración satisfecha con un criterio vulnerable positivo permite
+generar `POSSIBLE_CVE_MATCH`, con confianza `POSSIBLE` y regla
+`NVD_POSSIBLE_MATCH`.
 
-`EvaluationsModule` prepara `GET /rules` público y `POST /evaluations` protegido
-por `SessionGuard`. La solicitud privada se valida con un esquema estricto, se
-interpreta sin persistencia y responde con `Cache-Control: no-store`. NVD y KEV
-figuran como `NOT_QUERIED`; no se generan coincidencias CVE en esta etapa.
+Los rangos de versión requieren un comparador respaldado para el producto.
+El flujo integrado no presupone un orden universal de versiones ni selecciona
+SemVer por la apariencia de una cadena. Las condiciones no soportadas y los
+datos `affected` sin interpretar conservan un resultado inconcluso.
 
-Los metadatos usan la versión del motor. La fecha fija de publicación de la
-versión 0.1.0 es `2026-11-11T05:32:33Z`, correspondiente a su integración en
-`develop` mediante el PR #24.
+Una coincidencia posible no confirma una vulnerabilidad.
 
-El módulo está registrado en `AppModule`. Para la evaluación básica, el límite
-por IP y ruta es de 60 solicitudes por minuto para `GET /rules` y 600 por minuto
-para `POST /evaluations`. El límite se aplica antes de comprobar la sesión en
-la ruta privada. Esos valores no autorizan consultas a proveedores externos;
-sus cuotas y controles deberán coordinarse antes de integrar NVD o KEV.
+## Consulta de CISA KEV
 
-## Preparación de fuentes externas
+KEV se consulta únicamente si existen coincidencias CVE sustentadas.
+Un catálogo completo y validado comprueba todas las coincidencias de la
+evaluación.
 
-Los contratos y parsers de NVD y CISA KEV se prueban con datos sintéticos. Las
-páginas de NVD se tratan como candidatos; se conservan sus configuraciones,
-operadores, negaciones y rangos de versión. El evaluador preparado combina
-condiciones con resultados verdadero, falso o desconocido y exige una condición
-vulnerable positiva para una coincidencia posible. Los límites de versión se
-evalúan únicamente con un comparador suministrado para un esquema conocido; no
-se inventa un orden general para las versiones de fabricantes. Hay un comparador
-de [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html), pero debe elegirse solo
-cuando exista evidencia de que el producto usa ese esquema: tener tres números
-en la versión no demuestra que sea SemVer.
+`in_kev=false` exige un catálogo válido y vigente que no contenga la CVE.
+Si KEV falla o no se consulta, la pertenencia permanece en `null`.
 
-La comparación CPE preparada acepta únicamente nombres formateados 2.3 con
-valores literales, ANY o NA. Las secuencias escapadas y los comodines parciales
-se consideran desconocidos. Para evaluar un criterio se necesita un CPE
-resuelto de forma independiente, con fabricante, producto y versión concretos;
-el texto declarado por el usuario aún no se convierte a CPE automáticamente.
-La comparación es entre un criterio y un CPE, no demuestra que otros productos
-o requisitos estén ausentes del dispositivo.
+La pertenencia a KEV no demuestra que el dispositivo declarado esté siendo
+explotado.
 
-El parser del diccionario CPE de NVD conserva nombres, títulos, estado de
-obsolescencia y referencias a reemplazos como candidatos. La lectura paginada
-comprueba desplazamientos, totales e identificadores duplicados, y distingue
-páginas completas de parciales. Completar las páginas no garantiza que el
-diccionario no haya cambiado durante la lectura ni identifica automáticamente
-el producto declarado; un CPE obsoleto tampoco se sustituye automáticamente.
+## Integración HTTP y reglas
 
-Si NVD incluye datos `affected` sin interpretar o falta evidencia necesaria, la
-evaluación es inconclusa. Ningún candidato se convierte por sí solo en un
-hallazgo CVE ni confirma una vulnerabilidad.
+`EvaluationsModule` está registrado en `AppModule`.
 
-El parser de KEV comprueba los campos requeridos, identificadores y cantidad de
-registros antes de consultar pertenencia. Una fuente omitida o indisponible no
-se interpreta como resultado negativo. Los casos de uso preparados distinguen
-los estados y propagan cancelaciones; todavía no están conectados al módulo HTTP.
+- `GET /rules` publica metadatos de las reglas y es público.
+- `POST /evaluations` requiere sesión, valida estrictamente la solicitud y
+  responde con `Cache-Control: no-store`.
 
-La configuración de límites está definida en `external-sources.config.ts` y
-registrada en `AppModule`. Su aplicación por los adaptadores se rige por la
-[política de fuentes externas](external-sources-policy.md). Las fuentes permanecen
-deshabilitadas hasta integrar los controles y completar las pruebas. También falta
-la resolución fiable de identificación a CPE y la integración completa; cualquier
-forma CPE o comparación de versiones no soportada conserva un resultado inconcluso.
-La API actual sigue sin consultar NVD ni KEV.
+Ambos endpoints comparten la versión `0.2.0` y la fecha fija de publicación
+`2026-11-15T03:57:10Z`, definidas en `basic-rules.ts`.
 
-Referencias oficiales: [esquema de NVD CVE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema)
-y [esquema de NVD CPE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cpe_api_json_2.0.schema)
-y [esquema del catálogo KEV de CISA](https://github.com/cisagov/kev-data/blob/develop/known_exploited_vulnerabilities_schema.json).
-La lógica de condiciones se contrastó con [NISTIR 7698](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7698.pdf)
-y la [guía de configuraciones CPE del programa CVE](https://www.cve.org/Resources/Roles/Cnas/CPEinCVERecordsGuide.pdf).
-El subconjunto de comparación usa las reglas de
-[nombres CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7695.pdf) y
-[comparación CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7696.pdf).
+Los límites actuales por IP y ruta son 60 solicitudes por minuto para
+`GET /rules` y 600 para `POST /evaluations`. Estos límites HTTP no representan
+cuotas de acceso a los proveedores externos.
+
+## Estados y degradación
+
+Con fuentes deshabilitadas o identificación no comparable, la evaluación
+conserva la interpretación básica y ambas fuentes quedan en `NOT_QUERIED`.
+
+Una búsqueda NVD válida y completa puede quedar en `AVAILABLE` aunque no
+exista una coincidencia sustentada.
+
+Un fallo de NVD o una búsqueda necesaria incompleta produce `UNAVAILABLE`,
+conserva los hallazgos básicos y deja KEV en `NOT_QUERIED`.
+
+Si falla KEV, se conservan las coincidencias CVE sustentadas y su pertenencia
+queda en `null`. Los fallos esperados de proveedores no se confunden con
+errores internos de programación ni con desconexiones del cliente.
+
+## Controles de consumo
+
+Los clientes comparten por proceso cola, concurrencia, intervalo NVD y caché.
+El presupuesto incluye esperas, solicitudes, lectura y procesamiento.
+
+El transporte utiliza destinos HTTPS fijos, sin redirecciones automáticas,
+con límites de tiempo y tamaño. La caché conserva las fechas originales y
+aplica TTL y límites simultáneos de entradas y bytes.
+
+Las fuentes están deshabilitadas por defecto. Su configuración y controles
+se describen en la [política de consumo](external-sources-policy.md).
+
+## Verificación y limitaciones
+
+Las pruebas automatizadas utilizan fuentes simuladas. La evidencia manual
+contra proveedores y por HTTPS se registra en
+[integración y aceptación](evaluations-external-integration.md).
+
+La aceptación positiva del recorrido completo por HTTPS permanece pendiente.
+Una lista vacía, una fuente indisponible o una condición inconclusa no
+acreditan que un dispositivo sea seguro.
+
+## Referencias
+
+- [Contrato OpenAPI](hogarscan_openapi.yaml).
+- [Esquema NVD CVE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema).
+- [Esquema NVD CPE API 2.0](https://csrc.nist.gov/schema/nvd/api/2.0/cpe_api_json_2.0.schema).
+- [Esquema CISA KEV](https://github.com/cisagov/kev-data/blob/develop/known_exploited_vulnerabilities_schema.json).
+- [NISTIR 7698: condiciones de aplicabilidad](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7698.pdf).
+- [NISTIR 7695: nombres CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7695.pdf).
+- [NISTIR 7696: comparación CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7696.pdf).
