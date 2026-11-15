@@ -134,4 +134,31 @@ describe('NVD candidate page parser', () => {
       expect(() => parseNvdPage(payload)).toThrow('Invalid NVD response');
     },
   );
+  it.each([
+    [undefined, false],
+    [[], false],
+    [[{ source: 'synthetic' }], true],
+  ] as const)(
+    'distingue affected vacío de datos adicionales %#',
+    (affected, expected) => {
+      const payload = {
+        ...page,
+        resultsPerPage: 1,
+        totalResults: 1,
+        vulnerabilities: [
+          {
+            cve: {
+              ...record,
+              id: 'CVE-2026-1234',
+              affected,
+            },
+          },
+        ],
+      };
+
+      expect(parseNvdPage(payload).candidates[0]?.hasUnparsedAffectedData).toBe(
+        expected,
+      );
+    },
+  );
 });

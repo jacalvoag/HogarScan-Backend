@@ -248,8 +248,8 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/RulesResponse'}
               example:
-                ruleset_version: '0.2.0'
-                published_at: '2026-11-15T03:57:10Z'
+                ruleset_version: '0.3.0'
+                published_at: '2026-11-15T08:56:16Z'
                 categories: [TCP_SERVICE_ACCESSIBLE, PROTOCOL_IDENTIFIED, PREVENTIVE_REVIEW, POSSIBLE_CVE_MATCH, INSUFFICIENT_EVIDENCE]
                 max_probes_per_evaluation: 6
                 caveat: Una conexión aceptada no prueba que exista una vulnerabilidad.
@@ -293,8 +293,8 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/EvaluationResponse'}
               example:
-                ruleset_version: '0.2.0'
-                evaluated_at: '2026-11-15T04:00:00Z'
+                ruleset_version: '0.3.0'
+                evaluated_at: '2026-11-15T09:00:00Z'
                 sources: {nvd: NOT_QUERIED, kev: NOT_QUERIED, checked_at: null}
                 findings:
                   - category: TCP_SERVICE_ACCESSIBLE

@@ -113,3 +113,19 @@ los datos publicados y disponibles al ejecutar la prueba.
 
 Una lista vacía de coincidencias o una fuente indisponible no demuestra
 que un dispositivo sea seguro.
+
+## Criterio de coincidencia de la versión 0.3.0
+
+La evaluación de aplicabilidad utiliza las configuraciones CPE publicadas
+por NVD. La presencia de datos adicionales en `affected` ya no impide
+automáticamente comparar una configuración soportada.
+
+Esos datos adicionales no se interpretan ni se utilizan para afirmar o
+descartar afectación. Los hallazgos comunican esta limitación.
+
+Se conservan las comprobaciones de estado, condiciones, negaciones,
+requisitos desconocidos y rangos de versión no soportados. `affected`
+por sí solo no genera coincidencias.
+
+La aceptación positiva del recorrido desplegado sigue pendiente hasta
+repetir y comprobar la prueba por HTTPS con esta versión.

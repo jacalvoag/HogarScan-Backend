@@ -158,9 +158,15 @@ sin emitir coincidencias CVE; ese estado no afirma que el producto sea seguro.
 Un resultado por palabras clave es solo un candidato. No elegir automáticamente
 el primer CPE ni fabricar un nombre CPE a partir del texto del usuario. Resolver
 fabricante, producto y versión con evidencia suficiente, respetando obsolescencia
-y condiciones publicadas. Con ambigüedad, sintaxis no soportada, información
-`affected` sin interpretar o comparador de versiones injustificado, conservar
-el resultado inconcluso. Tener tres números no demuestra que una versión sea SemVer.
+y condiciones publicadas. Con ambigüedad, sintaxis CPE no soportada o comparador de versiones
+injustificado, conservar el resultado inconcluso.
+
+Las coincidencias se sustentan exclusivamente en las configuraciones CPE
+publicadas por NVD. Los datos adicionales de `affected` no se interpretan
+ni se utilizan como evidencia positiva o negativa. Su presencia no constituye
+un veto global sobre las configuraciones. Los hallazgos deben comunicar
+esta limitación sin afirmar que se contrastaron ambas representaciones.
+Tener tres números no demuestra que una versión sea SemVer.
 
 Solo una condición vulnerable positiva evaluada permite `POSSIBLE_CVE_MATCH`.
 La identificación sigue siendo declarada y la coincidencia no certifica una

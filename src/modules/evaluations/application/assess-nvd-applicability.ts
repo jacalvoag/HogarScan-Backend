@@ -64,7 +64,7 @@ function evaluateConfiguration(
   };
 }
 
-/** Evaluates known conditions only; it does not fetch data or prove actual vulnerability. */
+/** Assesses NVD CPE configurations only; additional affected records are not interpreted. */
 export function assessNvdApplicability(
   candidate: NvdCandidate,
   match: MatchNvdCriterion,
@@ -72,7 +72,6 @@ export function assessNvdApplicability(
   if (
     candidate.status === null ||
     candidate.status.toLowerCase() === 'rejected' ||
-    candidate.hasUnparsedAffectedData ||
     !candidate.configurations?.length
   ) {
     return { state: 'INCONCLUSIVE' };
