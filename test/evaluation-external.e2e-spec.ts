@@ -1,5 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
+import { createHash } from 'node:crypto';
 import { request as httpRequest } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { AppModule } from '../src/app.module.js';
@@ -16,6 +17,7 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
   let app: NestExpressApplication;
   let source: ExternalSourceClients;
   const token = 'A'.repeat(43);
+  const secondToken = 'B'.repeat(43);
   const fetcher = vi.fn<typeof fetch>();
   const cve = 'CVE-2026-987654';
   const cpeName = 'cpe:2.3:h:example:device:1:*:*:*:*:*:*:*';
@@ -100,6 +102,10 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
       },
     ],
   };
+  const jsonResponse = (payload: unknown) =>
+    new Response(JSON.stringify(payload), {
+      headers: { 'content-type': 'application/json' },
+    });
 
   beforeAll(async () => {
     fetcher.mockImplementation(async (url) => {
@@ -112,28 +118,41 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
       };
       const payload = payloads[url.pathname];
       if (payload === undefined) throw new Error('Unexpected provider');
-      return new Response(JSON.stringify(payload), {
-        headers: { 'content-type': 'application/json' },
-      });
+      return jsonResponse(payload);
     });
     vi.stubGlobal('fetch', fetcher);
     const config = validateExternalSourcesEnvironment({
       EXTERNAL_SOURCES_ENABLED: 'true',
     });
-    const query = vi.fn().mockResolvedValue({
-      rows: [
-        {
-          user_id: '6ba63463-9073-43d1-9b60-2fd868798cc0',
-          expires_at: new Date(Date.now() + 86400000),
-          revoked_at: null,
-        },
-      ],
+    const testAccounts = new Map(
+      [
+        [token, '6ba63463-9073-43d1-9b60-2fd868798cc0'],
+        [secondToken, '5dbf6f42-4aee-4733-986f-4dd982570978'],
+      ].map(([value, userId]) => [
+        createHash('sha256').update(value).digest('hex'),
+        userId,
+      ]),
+    );
+    const query = vi.fn(async (_sql: string, [tokenHash]: [string]) => {
+      const userId = testAccounts.get(tokenHash);
+      return {
+        rows:
+          userId === undefined
+            ? []
+            : [
+                {
+                  user_id: userId,
+                  expires_at: new Date(Date.now() + 86400000),
+                  revoked_at: null,
+                },
+              ],
+      };
     });
     const moduleRef = await createHttpTestModule({ imports: [AppModule] })
       .overrideProvider(POSTGRES_POOL)
       .useValue({ query })
       .overrideProvider(externalSourcesConfig.KEY)
-      .useValue({ ...config, nvdMinIntervalMs: 1 })
+      .useValue({ ...config, nvdMaxPages: 2, nvdMinIntervalMs: 1 })
       .compile();
     source = moduleRef.get(ExternalSourceClients);
     app = moduleRef.createNestApplication<NestExpressApplication>({
@@ -148,13 +167,36 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
     vi.unstubAllGlobals();
   });
 
-  it('publica la coincidencia sustentada y conserva la procedencia al usar caché', async () => {
-    const first = await request(app.getHttpServer())
-      .post('/evaluations')
-      .set('Authorization', `Bearer ${token}`)
-      .send(body)
-      .expect(200)
-      .expect('Cache-Control', 'no-store');
+  it('comparte consultas y procedencia entre dos cuentas con evaluaciones simultáneas', async () => {
+    let releaseFirstPage: () => void = () => undefined;
+    const bothSearching = new Promise<void>((resolve) => {
+      releaseFirstPage = resolve;
+    });
+    const searchCpe = source.searchCpe.bind(source);
+    let searches = 0;
+    const spy = vi.spyOn(source, 'searchCpe').mockImplementation((...args) => {
+      const result = searchCpe(...args);
+      if (++searches === 2) releaseFirstPage();
+      return result;
+    });
+    fetcher.mockImplementationOnce(async () => {
+      await bothSearching;
+      return jsonResponse(page);
+    });
+    const evaluate = (session: string) =>
+      request(app.getHttpServer())
+        .post('/evaluations')
+        .set('Authorization', `Bearer ${session}`)
+        .send(body)
+        .expect(200)
+        .expect('Cache-Control', 'no-store');
+    const [first, second] = await Promise.all([
+      evaluate(token),
+      evaluate(secondToken),
+    ]).finally(() => {
+      releaseFirstPage();
+      spy.mockRestore();
+    });
     expect(first.body.sources).toMatchObject({
       nvd: 'AVAILABLE',
       kev: 'AVAILABLE',
@@ -183,11 +225,6 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
         rule_id: 'NVD_POSSIBLE_MATCH',
       }),
     );
-    const second = await request(app.getHttpServer())
-      .post('/evaluations')
-      .set('Authorization', `Bearer ${token}`)
-      .send(body)
-      .expect(200);
     expect(second.body.sources).toEqual(first.body.sources);
     expect(second.body.possible_cve_matches).toEqual(
       first.body.possible_cve_matches,
@@ -202,7 +239,73 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
     expect((fetcher.mock.calls[1][0] as URL).searchParams.get('cpeName')).toBe(
       cpeName,
     );
+    const cached = await evaluate(secondToken);
+    expect(cached.body.sources).toEqual(first.body.sources);
+    expect(cached.body.possible_cve_matches).toEqual(
+      first.body.possible_cve_matches,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    const rules = await request(app.getHttpServer()).get('/rules').expect(200);
+    expect(first.body.ruleset_version).toBe('0.2.0');
+    expect(rules.body.ruleset_version).toBe(first.body.ruleset_version);
   });
+
+  it.each([
+    { version: '2', totalResults: 2, nvd: 'AVAILABLE' },
+    { version: '3', totalResults: 3, nvd: 'UNAVAILABLE' },
+  ])(
+    'no busca CVE si el diccionario da NVD $nvd sin resolución única',
+    async ({ version, totalResults, nvd }) => {
+      const priorCalls = fetcher.mock.calls.length;
+      const candidate = page.products[0].cpe;
+      const firstName = candidate.cpeName.replace(':1:', `:${version}:`);
+      fetcher
+        .mockResolvedValueOnce(
+          jsonResponse({
+            ...page,
+            totalResults,
+            products: [{ cpe: { ...candidate, cpeName: firstName } }],
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            ...page,
+            totalResults,
+            startIndex: 1,
+            products: [
+              {
+                cpe: {
+                  ...candidate,
+                  cpeNameId: '00000000-0000-4000-8000-000000000003',
+                  cpeName: firstName.replace(':h:', ':a:'),
+                },
+              },
+            ],
+          }),
+        );
+      const response = await request(app.getHttpServer())
+        .post('/evaluations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...body, identification: { ...body.identification, version } })
+        .expect(200);
+      expect(response.body.sources).toMatchObject({ nvd, kev: 'NOT_QUERIED' });
+      expect(response.body.possible_cve_matches).toEqual([]);
+      expect(response.body.findings).toEqual([
+        expect.objectContaining({ rule_id: 'TCP_ACCEPTED' }),
+      ]);
+      const urls = fetcher.mock.calls
+        .slice(priorCalls)
+        .map(([url]) => url as URL);
+      expect(urls.map((url) => url.pathname)).toEqual([
+        '/rest/json/cpes/2.0',
+        '/rest/json/cpes/2.0',
+      ]);
+      expect(urls.map((url) => url.searchParams.get('startIndex'))).toEqual([
+        '0',
+        '1',
+      ]);
+    },
+  );
 
   it('cancela la consulta si el cliente cierra la conexión', async () => {
     let notifyStarted: (signal: AbortSignal) => void = () => undefined;
