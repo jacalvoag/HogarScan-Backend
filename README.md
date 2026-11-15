@@ -253,3 +253,12 @@ realizadas y las limitaciones relevantes.
 
 Consulta la [guía de contribución](CONTRIBUTING.md) para el flujo de trabajo
 y la [política de seguridad](SECURITY.md) para reportar posibles vulnerabilidades.
+
+## Licencia
+
+Este proyecto se distribuye bajo la [licencia MIT](LICENSE).
+
+Copyright © 2026 José Antonio Calvo Aguilar y
+Uzzi Yazziel Gonzaga Gómez.
+
+Las dependencias de terceros conservan sus respectivas licencias.
