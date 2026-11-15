@@ -31,16 +31,16 @@ describe('External provider transport', () => {
       items: [],
     });
     const [url, init] = fetcher.mock.calls[0];
-    expect(String(url)).toBe(
+    expect((url as URL).toString()).toBe(
       'https://services.nvd.nist.gov/rest/json/cpes/2.0?startIndex=0&resultsPerPage=5&keywordSearch=Example+Device',
     );
     expect(init?.redirect).toBe('manual');
     expect(new Headers(init?.headers).get('apiKey')).toBe('test-key');
-    expect(String(url)).not.toContain('test-key');
+    expect((url as URL).toString()).not.toContain('test-key');
 
     fetcher.mockResolvedValueOnce(ok());
     await transport.getJson({ kind: 'KEV' }, signal(), 10000);
-    expect(String(fetcher.mock.calls[1][0])).toBe(
+    expect((fetcher.mock.calls[1][0] as URL).toString()).toBe(
       'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json',
     );
     expect(new Headers(fetcher.mock.calls[1][1]?.headers).has('apiKey')).toBe(

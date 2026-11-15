@@ -93,7 +93,7 @@ describe('evaluación con fuentes externas', () => {
     try {
       const searchCpe = vi.fn(
         (_input, externalSignal: AbortSignal) =>
-          new Promise((_resolve, reject) =>
+          new Promise<never>((_resolve, reject) =>
             externalSignal.addEventListener(
               'abort',
               () => reject(externalSignal.reason),
