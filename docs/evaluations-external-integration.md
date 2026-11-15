@@ -42,7 +42,18 @@ presupuesto abarca la espera, consulta y procesamiento.
 de la regla `NVD_POSSIBLE_MATCH`. La fecha de la versión es fija y la respuesta
 usa los campos y estados de OpenAPI existentes.
 
-Quedan la revisión de José y dos pruebas de aceptación coordinadas, una limitada
-contra NVD y CISA y otra por HTTPS. La propuesta mantiene las fuentes
-deshabilitadas por defecto. Integrar en `develop` desencadena el despliegue de
-desarrollo.
+## Despliegue y configuración
+
+La integración fue revisada e incorporada a `develop` mediante el PR #33.
+La validación del backend y el despliegue automático de desarrollo finalizaron
+correctamente.
+
+Las fuentes permanecen deshabilitadas por defecto en el código. Para las
+pruebas manuales se habilitaron en el entorno de desarrollo con esta
+configuración:
+
+```env
+EXTERNAL_SOURCES_ENABLED=true
+EXTERNAL_REQUEST_TIMEOUT_MS=30000
+EXTERNAL_EVALUATION_BUDGET_MS=45000
+```
