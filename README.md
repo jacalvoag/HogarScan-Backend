@@ -250,3 +250,6 @@ compartidos o a la infraestructura se coordinan antes de implementarse.
 
 Cada Pull Request debe explicar el comportamiento resultante, las pruebas
 realizadas y las limitaciones relevantes.
+
+Consulta la [guía de contribución](CONTRIBUTING.md) para el flujo de trabajo
+y la [política de seguridad](SECURITY.md) para reportar posibles vulnerabilidades.
