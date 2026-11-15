@@ -49,6 +49,10 @@ describe('resolución CPE de una identificación declarada', () => {
       [{ ...exact, name: 'cpe:2.3:h:example:device:1.2.3a:*:pro:*:*:*:*:*' }],
     ],
     [
+      'edición marcada como no aplicable',
+      [{ ...exact, name: 'cpe:2.3:h:example:device:1.2.3a:*:-:*:*:*:*:*' }],
+    ],
+    [
       'otra versión',
       [{ ...exact, name: exact.name.replace('1.2.3a', '1.2.3A') }],
     ],

@@ -9,10 +9,12 @@ oficial. Véase la [documentación del filtro de NVD](https://nvd.nist.gov/devel
 
 La búsqueda completa debe devolver un solo registro vigente. Fabricante y
 producto deben coincidir sin distinguir mayúsculas, y la versión debe coincidir
-carácter por carácter. Los demás atributos deben ser genéricos porque la persona
-usuaria no los aportó. Los alias, variantes, registros obsoletos y sintaxis no
-soportada quedan inconclusos. Esto permite una asociación provisional con el
-CPE para evaluar condiciones publicadas. La identidad sigue siendo declarada.
+carácter por carácter. En los siete atributos restantes solo se acepta
+`*` (ANY). Un `-` (NA) o un valor específico requiere información adicional
+y deja la resolución inconclusa. Los alias, variantes, registros obsoletos y
+sintaxis no soportada también quedan inconclusos. Esto permite una asociación
+provisional con el CPE para evaluar condiciones publicadas. La identidad sigue
+siendo declarada.
 
 La búsqueda CVE también debe completar su paginación. Solo se emite un hallazgo
 `POSSIBLE_CVE_MATCH` si se satisface una configuración con al menos un criterio
