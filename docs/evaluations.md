@@ -60,10 +60,15 @@ generar `POSSIBLE_CVE_MATCH`, con confianza `POSSIBLE` y regla
 
 Los rangos de versión requieren un comparador respaldado para el producto.
 El flujo integrado no presupone un orden universal de versiones ni selecciona
-SemVer por la apariencia de una cadena. Las condiciones no soportadas y los
-datos `affected` sin interpretar conservan un resultado inconcluso.
+SemVer por la apariencia de una cadena. Las condiciones CPE no soportadas
+conservan un resultado inconcluso.
 
-Una coincidencia posible no confirma una vulnerabilidad.
+La coincidencia se sustenta exclusivamente en las configuraciones CPE
+publicadas por NVD. Los datos adicionales de `affected` no se interpretan
+ni se utilizan como evidencia positiva o negativa. Su presencia no anula
+automáticamente una configuración CPE soportada. El hallazgo comunica
+expresamente esta limitación y no acredita una validación conjunta de ambas
+representaciones.
 
 ## Consulta de CISA KEV
 
@@ -85,8 +90,8 @@ explotado.
 - `POST /evaluations` requiere sesión, valida estrictamente la solicitud y
   responde con `Cache-Control: no-store`.
 
-Ambos endpoints comparten la versión `0.2.0` y la fecha fija de publicación
-`2026-11-15T03:57:10Z`, definidas en `basic-rules.ts`.
+Ambos endpoints comparten la versión `0.3.0` y la fecha fija de publicación
+`2026-11-15T08:56:16Z`, definidas en `basic-rules.ts`.
 
 Los límites actuales por IP y ruta son 60 solicitudes por minuto para
 `GET /rules` y 600 para `POST /evaluations`. Estos límites HTTP no representan

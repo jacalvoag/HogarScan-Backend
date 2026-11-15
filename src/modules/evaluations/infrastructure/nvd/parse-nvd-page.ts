@@ -70,7 +70,7 @@ export function parseNvdPage(payload: unknown): NvdCandidatePage {
       cve: cve.id,
       status: cve.vulnStatus ?? null,
       configurations: cve.configurations ?? null,
-      hasUnparsedAffectedData: cve.affected !== undefined,
+      hasUnparsedAffectedData: (cve.affected?.length ?? 0) > 0,
     })),
   };
 }

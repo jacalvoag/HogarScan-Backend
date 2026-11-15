@@ -107,7 +107,6 @@ describe('NVD applicability assessment', () => {
     { ...candidate, configurations: [] },
     { ...candidate, status: null },
     { ...candidate, status: 'Rejected' },
-    { ...candidate, hasUnparsedAffectedData: true },
     { ...candidate, configurations: [{ nodes: [] }] },
     {
       ...candidate,
@@ -132,4 +131,36 @@ describe('NVD applicability assessment', () => {
       });
     },
   );
+
+  it.each([
+    ['TRUE', 'POSSIBLE'],
+    ['UNKNOWN', 'INCONCLUSIVE'],
+    ['FALSE', 'NOT_SATISFIED'],
+  ] as const)(
+    'evalúa configuraciones con affected adicional: %s produce %s',
+    (truth, expected) => {
+      const result = assessNvdApplicability(
+        { ...candidate, hasUnparsedAffectedData: true },
+        () => truth,
+      );
+
+      expect(result.state).toBe(expected);
+    },
+  );
+  it('no usa affected como evidencia cuando faltan configuraciones CPE', () => {
+    const matcher = vi.fn(() => 'TRUE' as const);
+
+    expect(
+      assessNvdApplicability(
+        {
+          ...candidate,
+          hasUnparsedAffectedData: true,
+          configurations: null,
+        },
+        matcher,
+      ),
+    ).toEqual({ state: 'INCONCLUSIVE' });
+
+    expect(matcher).not.toHaveBeenCalled();
+  });
 });

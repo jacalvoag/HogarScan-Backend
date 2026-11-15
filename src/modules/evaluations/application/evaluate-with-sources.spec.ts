@@ -3,6 +3,7 @@ import { EvaluateWithSources } from './evaluate-with-sources.js';
 import { ExternalSourceError } from './ports/external-source-result.js';
 import type { EvaluationInput } from '../domain/evaluation-input.js';
 import type { NvdCandidate } from './ports/vulnerability-sources.js';
+import { parseNvdPage } from '../infrastructure/nvd/parse-nvd-page.js';
 
 const input: EvaluationInput = {
   observations: [{ port: 22, outcome: 'ACCEPTED' }],
@@ -211,10 +212,12 @@ describe('evaluación con fuentes externas', () => {
       value: [
         {
           ...nvdCandidate('CVE-2026-9999'),
+          hasUnparsedAffectedData: true,
           configurations: [{ nodes: [{ operator: 'OR', cpeMatch: [range] }] }],
         },
         {
           ...nvdCandidate('CVE-2026-9998'),
+          hasUnparsedAffectedData: true,
           configurations: [
             {
               operator: 'AND',
@@ -276,5 +279,93 @@ describe('evaluación con fuentes externas', () => {
     expect(result.possibleCveMatches).toMatchObject([
       { cve: 'CVE-2026-9999', inKev: null },
     ]);
+  });
+  it('correlaciona configuraciones CPE con affected adicional y consulta KEV', async () => {
+    const source = sourceMocks();
+    const cve = 'CVE-2026-1234';
+
+    const parsed = parseNvdPage({
+      resultsPerPage: 1,
+      startIndex: 0,
+      totalResults: 1,
+      format: 'NVD_CVE',
+      version: '2.0',
+      timestamp: at.toISOString(),
+      vulnerabilities: [
+        {
+          cve: {
+            id: cve,
+            published: at.toISOString(),
+            lastModified: at.toISOString(),
+            descriptions: [{ lang: 'en', value: 'Synthetic fixture' }],
+            references: [],
+            vulnStatus: 'Analyzed',
+            affected: [
+              {
+                source: 'synthetic',
+                affectedData: [
+                  {
+                    vendor: 'Example',
+                    product: 'Device',
+                    versions: [{ version: '1', status: 'affected' }],
+                  },
+                ],
+              },
+            ],
+            configurations: [
+              {
+                nodes: [
+                  {
+                    operator: 'OR',
+                    cpeMatch: [
+                      {
+                        vulnerable: true,
+                        criteria: cpe,
+                        matchCriteriaId: '00000000-0000-4000-8000-000000000001',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(parsed.candidates[0]?.hasUnparsedAffectedData).toBe(true);
+
+    source.searchCve.mockResolvedValue({
+      value: parsed.candidates,
+      obtainedAt: at,
+    });
+
+    source.loadKev.mockResolvedValue({
+      value: { contains: (id: string) => id === cve },
+      obtainedAt: at,
+    });
+
+    const result = await new EvaluateWithSources(basic, source, config).execute(
+      input,
+      signal(),
+    );
+
+    expect(result.sources).toMatchObject({
+      nvd: 'AVAILABLE',
+      kev: 'AVAILABLE',
+    });
+    expect(source.loadKev).toHaveBeenCalledTimes(1);
+    expect(result.possibleCveMatches).toMatchObject([{ cve, inKev: true }]);
+
+    const finding = result.findings.find((item) => item.cve === cve);
+
+    expect(finding).toMatchObject({
+      category: 'POSSIBLE_CVE_MATCH',
+      confidence: 'POSSIBLE',
+      ruleId: 'NVD_POSSIBLE_MATCH',
+    });
+    expect(finding?.limitation).toContain(
+      'no se interpretaron los datos adicionales de affected',
+    );
   });
 });

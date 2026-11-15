@@ -246,7 +246,7 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
     );
     expect(fetcher).toHaveBeenCalledTimes(3);
     const rules = await request(app.getHttpServer()).get('/rules').expect(200);
-    expect(first.body.ruleset_version).toBe('0.2.0');
+    expect(first.body.ruleset_version).toBe('0.3.0');
     expect(rules.body.ruleset_version).toBe(first.body.ruleset_version);
   });
 

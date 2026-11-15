@@ -181,7 +181,7 @@ export class EvaluateWithSources {
               action:
                 'Contrastar el modelo y la versión con el aviso del fabricante y revisar si hay una actualización.',
               limitation:
-                'La identificación es declarada y la coincidencia no confirma que el dispositivo sea vulnerable.',
+                'La identificación es declarada. Solo se evaluaron configuraciones CPE de NVD; no se interpretaron los datos adicionales de affected. La coincidencia no confirma que el dispositivo sea vulnerable.',
               ruleId: 'NVD_POSSIBLE_MATCH',
               cve,
             }),
