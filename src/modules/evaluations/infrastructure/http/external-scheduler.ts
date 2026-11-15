@@ -16,6 +16,7 @@ interface PendingWork {
   readonly reject: (reason: unknown) => void;
   readonly onAbort: () => void;
   readonly checkCache: () => boolean;
+  readonly mayUseCache: boolean;
 }
 
 export type CachedResult<T> =
@@ -52,7 +53,10 @@ export class ExternalScheduler {
     checkCache?: () => CachedResult<T>,
   ): Promise<T> {
     if (signal.aborted) return Promise.reject(signal.reason);
-    if (this.now() >= deadlineAt || this.eligibleAt(provider) >= deadlineAt)
+    if (
+      this.now() >= deadlineAt ||
+      (checkCache === undefined && this.eligibleAt(provider) >= deadlineAt)
+    )
       return Promise.reject(new ExternalSourceError('TIMEOUT'));
     // Start already-eligible queued work before deciding whether this call can start.
     this.drain();
@@ -62,6 +66,7 @@ export class ExternalScheduler {
         provider,
         deadlineAt,
         signal,
+        mayUseCache: checkCache !== undefined,
         reject,
         checkCache: () => {
           if (checkCache === undefined) return false;
@@ -171,7 +176,10 @@ export class ExternalScheduler {
       } else if (work.checkCache()) {
         this.queue.splice(index, 1);
         work.signal.removeEventListener('abort', work.onAbort);
-      } else if (this.eligibleAt(work.provider) >= work.deadlineAt) {
+      } else if (
+        !work.mayUseCache &&
+        this.eligibleAt(work.provider) >= work.deadlineAt
+      ) {
         this.queue.splice(index, 1);
         work.signal.removeEventListener('abort', work.onAbort);
         work.reject(new ExternalSourceError('TIMEOUT'));

@@ -152,6 +152,30 @@ describe('Shared external scheduler', () => {
     expect(operation).not.toHaveBeenCalled();
   });
 
+  it('permite una lectura cacheada aunque el siguiente turno NVD exceda el presupuesto', async () => {
+    const scheduler = new ExternalScheduler(policy, () => Date.now());
+    let release: (() => void) | undefined;
+    let cached = false;
+    const first = scheduler.schedule(
+      'NVD',
+      5000,
+      signal(),
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const operation = vi.fn(async () => 'red');
+    const second = scheduler.schedule('NVD', 300, signal(), operation, () =>
+      cached ? { hit: true, value: 'cache' } : { hit: false },
+    );
+    cached = true;
+    release?.();
+    await first;
+    await expect(second).resolves.toBe('cache');
+    expect(operation).not.toHaveBeenCalled();
+  });
+
   it('counts failed starts and respects provider Retry-After without blocking KEV', async () => {
     const scheduler = new ExternalScheduler(policy, () => Date.now());
     await expect(
