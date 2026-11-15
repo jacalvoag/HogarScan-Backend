@@ -85,6 +85,36 @@ describe('External JSON cache', () => {
     expect(cache.get('á')).toBeUndefined();
   });
 
+  it('combina límites de entradas y bytes con el vencimiento original', () => {
+    const cache = new ExternalJsonCache(
+      { ...policy, cacheMaxBytes: 12 },
+      () => time,
+    );
+    const store = (key: string, value: string) =>
+      cache.put(
+        key,
+        value,
+        new Date(date.getTime() + time),
+        time,
+        signal(),
+        5000,
+      );
+    store('a', '1');
+    store('b', '2');
+    store('c', '3');
+    expect(cache.get('a')).toBeUndefined(); // Three entries would fit in bytes.
+    expect(cache.get('b')).toBeDefined();
+    time = 500;
+    store('d', 'éééé');
+    // The large entry fits alone but neither small entry fits alongside it.
+    expect(cache.get('b')).toBeUndefined();
+    expect(cache.get('c')).toBeUndefined();
+    time = 1499;
+    expect(cache.get('d')?.obtainedAt.getTime()).toBe(date.getTime() + 500);
+    time = 1500;
+    expect(cache.get('d')).toBeUndefined();
+  });
+
   it('never reads or writes when disabled, cancelled or past deadline', () => {
     const cache = new ExternalJsonCache(
       { ...policy, enabled: false },
