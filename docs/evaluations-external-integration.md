@@ -163,6 +163,3 @@ por sí solo no genera coincidencias.
 
 La aceptación positiva del recorrido desplegado sigue pendiente hasta
 repetir y comprobar la prueba por HTTPS con esta versión.
-
-La aceptación positiva del recorrido desplegado sigue pendiente hasta
-repetir y comprobar la prueba por HTTPS con esta versión.
