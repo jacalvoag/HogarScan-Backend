@@ -10,6 +10,19 @@ export class ExternalSourceError extends Error {
   }
 }
 
+export class InvalidExternalPayloadError extends ExternalSourceError {
+  constructor(source: 'NVD' | 'CPE' | 'KEV') {
+    super('INVALID_RESPONSE');
+    this.name = 'InvalidExternalPayloadError';
+    this.message =
+      source === 'NVD'
+        ? 'Invalid NVD response'
+        : source === 'CPE'
+          ? 'Invalid CPE dictionary response'
+          : 'Invalid KEV catalog';
+  }
+}
+
 /** The original acquisition time must survive cache reads. */
 export interface SourcedValue<T> {
   readonly value: T;

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { InvalidExternalPayloadError } from '../../application/ports/external-source-result.js';
 import type { NvdCandidatePage } from '../../application/ports/vulnerability-sources.js';
 
 const cveId = z.string().regex(/^CVE-[0-9]{4}-[0-9]{4,}(?![\s\S])/);
@@ -59,7 +60,7 @@ const nvdPage = z
 /** Preserves applicability conditions but does not assess them. */
 export function parseNvdPage(payload: unknown): NvdCandidatePage {
   const result = nvdPage.safeParse(payload);
-  if (!result.success) throw new Error('Invalid NVD response');
+  if (!result.success) throw new InvalidExternalPayloadError('NVD');
   const page = result.data;
   return {
     startIndex: page.startIndex,

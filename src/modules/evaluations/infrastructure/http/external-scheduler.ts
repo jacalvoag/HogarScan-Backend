@@ -15,7 +15,11 @@ interface PendingWork {
   readonly start: () => void;
   readonly reject: (reason: unknown) => void;
   readonly onAbort: () => void;
+  readonly checkCache: () => boolean;
 }
+
+export type CachedResult<T> =
+  { readonly hit: false } | { readonly hit: true; readonly value: T };
 
 /** One process-wide scheduler must be shared by all requests and accounts. */
 export class ExternalScheduler {
@@ -45,6 +49,7 @@ export class ExternalScheduler {
     deadlineAt: number,
     signal: AbortSignal,
     operation: (signal: AbortSignal, deadlineAt: number) => Promise<T>,
+    checkCache?: () => CachedResult<T>,
   ): Promise<T> {
     if (signal.aborted) return Promise.reject(signal.reason);
     if (this.now() >= deadlineAt || this.eligibleAt(provider) >= deadlineAt)
@@ -58,6 +63,20 @@ export class ExternalScheduler {
         deadlineAt,
         signal,
         reject,
+        checkCache: () => {
+          if (checkCache === undefined) return false;
+          try {
+            const cached = checkCache();
+            if (!cached.hit) return false;
+            if (signal.aborted) reject(signal.reason);
+            else if (this.now() >= deadlineAt)
+              reject(new ExternalSourceError('TIMEOUT'));
+            else resolve(cached.value);
+          } catch (error) {
+            reject(error);
+          }
+          return true;
+        },
         onAbort: () => {
           const index = this.queue.indexOf(work);
           if (index >= 0) {
@@ -141,11 +160,7 @@ export class ExternalScheduler {
     const now = this.now();
     for (let index = this.queue.length - 1; index >= 0; index--) {
       const work = this.queue[index];
-      if (
-        work.signal.aborted ||
-        work.deadlineAt <= now ||
-        this.eligibleAt(work.provider) >= work.deadlineAt
-      ) {
+      if (work.signal.aborted || work.deadlineAt <= now) {
         this.queue.splice(index, 1);
         work.signal.removeEventListener('abort', work.onAbort);
         work.reject(
@@ -153,6 +168,13 @@ export class ExternalScheduler {
             ? work.signal.reason
             : new ExternalSourceError('TIMEOUT'),
         );
+      } else if (work.checkCache()) {
+        this.queue.splice(index, 1);
+        work.signal.removeEventListener('abort', work.onAbort);
+      } else if (this.eligibleAt(work.provider) >= work.deadlineAt) {
+        this.queue.splice(index, 1);
+        work.signal.removeEventListener('abort', work.onAbort);
+        work.reject(new ExternalSourceError('TIMEOUT'));
       }
     }
 

@@ -102,6 +102,34 @@ describe('Shared external scheduler', () => {
     await expect(pending).resolves.toBe('nvd');
   });
 
+  it('rechecks cache while queued without consuming an NVD start', async () => {
+    const scheduler = new ExternalScheduler(policy, () => Date.now());
+    let release: (() => void) | undefined;
+    let cached = false;
+    const first = scheduler.schedule(
+      'NVD',
+      5000,
+      signal(),
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const extraHttp = vi.fn(async () => 'network');
+    const waiting = scheduler.schedule('NVD', 5000, signal(), extraHttp, () =>
+      cached ? { hit: true, value: 'cached' } : { hit: false },
+    );
+    cached = true;
+    release?.();
+    await first;
+    await expect(waiting).resolves.toBe('cached');
+    expect(extraHttp).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(
+      scheduler.schedule('NVD', 5000, signal(), async () => 'next'),
+    ).resolves.toBe('next');
+  });
+
   it('expires queued work without starting it', async () => {
     const scheduler = new ExternalScheduler(policy, () => Date.now());
     let release: (() => void) | undefined;
