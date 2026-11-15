@@ -46,8 +46,8 @@ describe('Evaluations module (e2e)', () => {
       .get('/rules')
       .expect(200);
     expect(response.body).toMatchObject({
-      ruleset_version: '0.1.0',
-      published_at: '2026-11-11T05:32:33Z',
+      ruleset_version: '0.2.0',
+      published_at: '2026-11-15T03:57:10Z',
       max_probes_per_evaluation: 6,
       max_addresses_per_scan: 254,
     });
@@ -75,7 +75,7 @@ describe('Evaluations module (e2e)', () => {
       .expect(200)
       .expect('Cache-Control', 'no-store');
     expect(response.body).toMatchObject({
-      ruleset_version: '0.1.0',
+      ruleset_version: '0.2.0',
       sources: { nvd: 'NOT_QUERIED', kev: 'NOT_QUERIED', checked_at: null },
       possible_cve_matches: [],
     });

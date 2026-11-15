@@ -1,4 +1,4 @@
-import { BASIC_RULESET_VERSION } from './basic-rules.js';
+import { EVALUATION_RULESET_VERSION } from './basic-rules.js';
 import { interpretBasicTcp } from './interpret-basic-tcp.js';
 import type { EvaluationInput } from './evaluation-input.js';
 
@@ -81,7 +81,7 @@ describe('Basic TCP interpretation', () => {
     const result = interpretBasicTcp({
       observations: [{ port: 80, outcome: 'ACCEPTED' }],
     });
-    expect(result.rulesetVersion).toBe(BASIC_RULESET_VERSION);
+    expect(result.rulesetVersion).toBe(EVALUATION_RULESET_VERSION);
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatchObject({
       category: 'TCP_SERVICE_ACCESSIBLE',
