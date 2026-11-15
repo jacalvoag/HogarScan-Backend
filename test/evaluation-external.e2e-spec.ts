@@ -126,8 +126,8 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
     });
     const testAccounts = new Map(
       [
-        [token, '6ba63463-9073-43d1-9b60-2fd868798cc0'],
-        [secondToken, '5dbf6f42-4aee-4733-986f-4dd982570978'],
+        [token, '00000000-0000-4000-8000-000000000001'],
+        [secondToken, '00000000-0000-4000-8000-000000000002'],
       ].map(([value, userId]) => [
         createHash('sha256').update(value).digest('hex'),
         userId,
