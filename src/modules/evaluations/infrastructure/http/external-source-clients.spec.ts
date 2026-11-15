@@ -7,12 +7,7 @@ describe('External source clients', () => {
   const signal = new AbortController().signal;
   const older = new Date('2026-11-13T00:00:00Z');
   const newer = new Date('2026-11-14T00:00:00Z');
-  const identification = {
-    vendor: 'Example',
-    product: 'Router',
-    version: '1.0',
-    source: 'USER_DEVICE_LABEL',
-  } as const;
+  const matchString = 'cpe:2.3:*:Example:Router:1.0';
   const nvdBase = {
     resultsPerPage: 1,
     startIndex: 0,
@@ -81,7 +76,7 @@ describe('External source clients', () => {
       nvdMaxPages: 2,
     });
     const result = await client.searchCpe(
-      identification,
+      matchString,
       signal,
       Number.MAX_SAFE_INTEGER,
     );
@@ -90,13 +85,13 @@ describe('External source clients', () => {
     expect(fake.requests).toEqual([
       {
         kind: 'NVD_CPE',
-        keyword: 'Example Router',
+        matchString,
         startIndex: 0,
         pageSize: 1,
       },
       {
         kind: 'NVD_CPE',
-        keyword: 'Example Router',
+        matchString,
         startIndex: 1,
         pageSize: 1,
       },
@@ -115,7 +110,7 @@ describe('External source clients', () => {
       nvdMaxPages: 1,
     });
     await expect(
-      client.searchCpe(identification, signal, Number.MAX_SAFE_INTEGER),
+      client.searchCpe(matchString, signal, Number.MAX_SAFE_INTEGER),
     ).rejects.toBeInstanceOf(ExternalSourceError);
   });
 
@@ -225,7 +220,7 @@ describe('External source clients', () => {
       now,
     );
     await expect(
-      client.searchCpe(identification, signal, 10),
+      client.searchCpe(matchString, signal, 10),
     ).rejects.toMatchObject({ kind: 'TIMEOUT' });
   });
 });

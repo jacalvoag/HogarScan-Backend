@@ -12,7 +12,6 @@ import type {
   NvdCandidate,
   NvdCandidatePage,
 } from '../../application/ports/vulnerability-sources.js';
-import type { ProductIdentification } from '../../domain/product-identification.js';
 import { parseCpeDictionaryPage } from '../nvd/parse-cpe-dictionary-page.js';
 import { parseNvdPage } from '../nvd/parse-nvd-page.js';
 import { parseKevCatalog } from '../kev/parse-kev-catalog.js';
@@ -45,7 +44,7 @@ export class ExternalSourceClients {
   }
 
   async searchCpe(
-    identification: ProductIdentification,
+    matchString: string,
     signal: AbortSignal,
     deadlineAt: number,
   ): Promise<SourcedValue<readonly CpeDictionaryCandidate[]>> {
@@ -60,7 +59,7 @@ export class ExternalSourceClients {
       const result = await this.gateway.get(
         {
           kind: 'NVD_CPE',
-          keyword: `${identification.vendor} ${identification.product}`,
+          matchString,
           startIndex,
           pageSize: this.policy.nvdPageSize,
         },

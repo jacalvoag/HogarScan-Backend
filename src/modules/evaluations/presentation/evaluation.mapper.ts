@@ -57,6 +57,16 @@ export function toEvaluationResponse(result: EvaluationResult) {
       ...finding,
       rule_id: ruleId,
     })),
-    possible_cve_matches: result.possibleCveMatches,
+    possible_cve_matches: result.possibleCveMatches.map((match) => ({
+      cve: match.cve,
+      vendor: match.identification.vendor,
+      product: match.identification.product,
+      version: match.identification.version,
+      identification_source: match.identification.source,
+      affected_condition: match.affectedCondition,
+      nvd_url: `https://nvd.nist.gov/vuln/detail/${match.cve}`,
+      nvd_checked_at: match.nvdCheckedAt.toISOString(),
+      in_kev: match.inKev,
+    })),
   };
 }

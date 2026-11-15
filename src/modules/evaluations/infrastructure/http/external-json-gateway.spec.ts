@@ -16,7 +16,7 @@ describe('Shared external JSON gateway', () => {
   const signal = () => new AbortController().signal;
   const request: ExternalRequest = {
     kind: 'NVD_CPE',
-    keyword: 'Example',
+    matchString: 'cpe:2.3:*:Example:Device:1',
     startIndex: 0,
     pageSize: 10,
   };

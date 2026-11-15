@@ -22,7 +22,7 @@ export function externalCacheKey(request: ExternalRequest): string {
     case 'NVD_CPE':
       return JSON.stringify([
         request.kind,
-        request.keyword,
+        request.matchString,
         request.startIndex,
         request.pageSize,
       ]);

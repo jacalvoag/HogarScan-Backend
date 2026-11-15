@@ -17,7 +17,7 @@ describe('External JSON cache', () => {
   it('isolates keys by provider, effective query, offset and page size', () => {
     const base = {
       kind: 'NVD_CPE',
-      keyword: 'Router X',
+      matchString: 'cpe:2.3:*:example:router_x:1A',
       startIndex: 0,
       pageSize: 50,
     } as const;
@@ -28,7 +28,10 @@ describe('External JSON cache', () => {
       externalCacheKey({ ...base, pageSize: 10 }),
     );
     expect(externalCacheKey(base)).not.toBe(
-      externalCacheKey({ ...base, keyword: 'router X' }),
+      externalCacheKey({
+        ...base,
+        matchString: 'cpe:2.3:*:example:router_x:1a',
+      }),
     );
     expect(externalCacheKey(base)).not.toBe(
       externalCacheKey({

@@ -10,7 +10,7 @@ describe('External provider transport', () => {
   };
   const cpe: ExternalRequest = {
     kind: 'NVD_CPE',
-    keyword: 'Example Device',
+    matchString: 'cpe:2.3:*:Example:Device:1',
     startIndex: 0,
     pageSize: 5,
   };
@@ -32,7 +32,7 @@ describe('External provider transport', () => {
     });
     const [url, init] = fetcher.mock.calls[0];
     expect((url as URL).toString()).toBe(
-      'https://services.nvd.nist.gov/rest/json/cpes/2.0?startIndex=0&resultsPerPage=5&keywordSearch=Example+Device',
+      'https://services.nvd.nist.gov/rest/json/cpes/2.0?startIndex=0&resultsPerPage=5&cpeMatchString=cpe%3A2.3%3A*%3AExample%3ADevice%3A1',
     );
     expect(init?.redirect).toBe('manual');
     expect(new Headers(init?.headers).get('apiKey')).toBe('test-key');

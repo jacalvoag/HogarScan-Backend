@@ -17,6 +17,8 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
   let source: ExternalSourceClients;
   const token = 'A'.repeat(43);
   const fetcher = vi.fn<typeof fetch>();
+  const cve = 'CVE-2026-987654';
+  const cpeName = 'cpe:2.3:h:example:device:1:*:*:*:*:*:*:*';
   const body = {
     probes: [{ port: 22, outcome: 'ACCEPTED' }],
     identification: {
@@ -36,7 +38,7 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
     products: [
       {
         cpe: {
-          cpeName: 'cpe:2.3:h:example:device:1:*:*:*:*:*:*:*',
+          cpeName,
           cpeNameId: '00000000-0000-4000-8000-000000000001',
           deprecated: false,
           created: '2026-11-14T00:00:00.000',
@@ -45,14 +47,75 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
       },
     ],
   };
+  const cvePage = {
+    resultsPerPage: 1,
+    startIndex: 0,
+    totalResults: 1,
+    version: '2.0',
+    format: 'NVD_CVE',
+    timestamp: page.timestamp,
+    vulnerabilities: [
+      {
+        cve: {
+          id: cve,
+          vulnStatus: 'Analyzed',
+          published: page.timestamp,
+          lastModified: page.timestamp,
+          descriptions: [{ lang: 'en', value: 'Synthetic CVE' }],
+          references: [],
+          configurations: [
+            {
+              nodes: [
+                {
+                  operator: 'OR',
+                  cpeMatch: [
+                    {
+                      vulnerable: true,
+                      criteria: cpeName,
+                      matchCriteriaId: '00000000-0000-4000-8000-000000000002',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+  };
+  const kevCatalog = {
+    catalogVersion: 'test',
+    dateReleased: '2026-11-14T00:00:00Z',
+    count: 1,
+    vulnerabilities: [
+      {
+        cveID: cve,
+        vendorProject: 'Example',
+        product: 'Device',
+        vulnerabilityName: 'Synthetic CVE',
+        dateAdded: '2026-11-01',
+        shortDescription: 'Synthetic',
+        requiredAction: 'Review',
+        dueDate: '2026-12-01',
+      },
+    ],
+  };
 
   beforeAll(async () => {
-    fetcher.mockImplementation(
-      async () =>
-        new Response(JSON.stringify(page), {
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
+    fetcher.mockImplementation(async (url) => {
+      if (!(url instanceof URL)) throw new Error('Expected provider URL');
+      const payloads: Record<string, unknown> = {
+        '/rest/json/cpes/2.0': page,
+        '/rest/json/cves/2.0': cvePage,
+        '/sites/default/files/feeds/known_exploited_vulnerabilities.json':
+          kevCatalog,
+      };
+      const payload = payloads[url.pathname];
+      if (payload === undefined) throw new Error('Unexpected provider');
+      return new Response(JSON.stringify(payload), {
+        headers: { 'content-type': 'application/json' },
+      });
+    });
     vi.stubGlobal('fetch', fetcher);
     const config = validateExternalSourcesEnvironment({
       EXTERNAL_SOURCES_ENABLED: 'true',
@@ -70,7 +133,7 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
       .overrideProvider(POSTGRES_POOL)
       .useValue({ query })
       .overrideProvider(externalSourcesConfig.KEY)
-      .useValue(config)
+      .useValue({ ...config, nvdMinIntervalMs: 1 })
       .compile();
     source = moduleRef.get(ExternalSourceClients);
     app = moduleRef.createNestApplication<NestExpressApplication>({
@@ -85,7 +148,7 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
     vi.unstubAllGlobals();
   });
 
-  it('consulta NVD una vez, conserva procedencia de caché y no inventa CVE', async () => {
+  it('publica la coincidencia sustentada y conserva la procedencia al usar caché', async () => {
     const first = await request(app.getHttpServer())
       .post('/evaluations')
       .set('Authorization', `Bearer ${token}`)
@@ -94,22 +157,50 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
       .expect('Cache-Control', 'no-store');
     expect(first.body.sources).toMatchObject({
       nvd: 'AVAILABLE',
-      kev: 'NOT_QUERIED',
+      kev: 'AVAILABLE',
     });
     expect(first.body.sources.checked_at).toMatch(/^\d{4}-\d\d-\d\dT/);
-    expect(first.body.possible_cve_matches).toEqual([]);
+    expect(first.body.possible_cve_matches).toMatchObject([
+      {
+        cve,
+        vendor: 'Example',
+        product: 'Device',
+        version: '1',
+        identification_source: 'USER_DEVICE_LABEL',
+        nvd_url: `https://nvd.nist.gov/vuln/detail/${cve}`,
+        in_kev: true,
+      },
+    ]);
+    expect(first.body.possible_cve_matches[0].affected_condition).toContain(
+      cpeName,
+    );
+    expect(first.body.findings).toContainEqual(
+      expect.objectContaining({
+        cve,
+        category: 'POSSIBLE_CVE_MATCH',
+        confidence: 'POSSIBLE',
+        priority: 'UNDETERMINED',
+        rule_id: 'NVD_POSSIBLE_MATCH',
+      }),
+    );
     const second = await request(app.getHttpServer())
       .post('/evaluations')
       .set('Authorization', `Bearer ${token}`)
       .send(body)
       .expect(200);
     expect(second.body.sources).toEqual(first.body.sources);
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(second.body.possible_cve_matches).toEqual(
+      first.body.possible_cve_matches,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(3);
     const url = fetcher.mock.calls[0][0];
     expect(url).toBeInstanceOf(URL);
     expect((url as URL).hostname).toBe('services.nvd.nist.gov');
-    expect((url as URL).searchParams.get('keywordSearch')).toBe(
-      'Example Device',
+    expect((url as URL).searchParams.get('cpeMatchString')).toBe(
+      'cpe:2.3:*:Example:Device:1',
+    );
+    expect((fetcher.mock.calls[1][0] as URL).searchParams.get('cpeName')).toBe(
+      cpeName,
     );
   });
 

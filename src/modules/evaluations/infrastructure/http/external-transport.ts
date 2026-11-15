@@ -4,7 +4,7 @@ import { ExternalSourceError } from '../../application/ports/external-source-res
 export type ExternalRequest =
   | {
       readonly kind: 'NVD_CPE';
-      readonly keyword: string;
+      readonly matchString: string;
       readonly startIndex: number;
       readonly pageSize: number;
     }
@@ -45,7 +45,7 @@ function destination(request: ExternalRequest): URL {
   url.searchParams.set('startIndex', String(request.startIndex));
   url.searchParams.set('resultsPerPage', String(request.pageSize));
   if (request.kind === 'NVD_CPE')
-    url.searchParams.set('keywordSearch', request.keyword);
+    url.searchParams.set('cpeMatchString', request.matchString);
   else url.searchParams.set('cpeName', request.cpeName);
   return url;
 }
