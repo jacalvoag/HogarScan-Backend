@@ -3,6 +3,7 @@ export class ExternalSourceError extends Error {
   constructor(
     readonly kind:
       'UNAVAILABLE' | 'TIMEOUT' | 'QUEUE_FULL' | 'INVALID_RESPONSE',
+    readonly retryAfterMs?: number,
   ) {
     super('External source unavailable');
     this.name = 'ExternalSourceError';
