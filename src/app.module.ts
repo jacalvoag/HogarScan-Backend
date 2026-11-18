@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { validateEnvironment } from './config/environment.js';
@@ -15,6 +16,9 @@ import { HealthModule } from './modules/health/health.module.js';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 60 }],
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnvironment,
@@ -29,6 +33,7 @@ import { HealthModule } from './modules/health/health.module.js';
   controllers: [AppController],
   providers: [
     AppService,
+    ThrottlerGuard,
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
     { provide: APP_PIPE, useClass: StrictSchemaValidationPipe },
   ],

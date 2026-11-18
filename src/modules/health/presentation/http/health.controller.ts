@@ -4,10 +4,13 @@ import {
   Header,
   Inject,
   ServiceUnavailableException,
+  UseGuards,
 } from '@nestjs/common';
 import { PostgresReadiness } from '../../infrastructure/postgres-readiness.js';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 @Controller('health')
+@UseGuards(ThrottlerGuard)
 export class HealthController {
   constructor(
     @Inject(PostgresReadiness)
