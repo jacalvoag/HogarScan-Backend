@@ -4,7 +4,8 @@ El backend interpreta observaciones TCP enviadas por la aplicación móvil.
 Cada evaluación corresponde a una sola dirección, que no se incluye en la
 solicitud, y contiene entre una y seis observaciones sin puertos repetidos.
 
-Los puertos admitidos por el piloto son 22, 23, 80, 443, 445 y 3389.
+Los puertos admitidos por el piloto son 21, 22, 23, 80, 443, 445 y 3389.
+Cada evaluación admite como máximo seis observaciones con puertos distintos.
 
 ## Interpretación de observaciones
 
@@ -28,9 +29,14 @@ La interpretación básica es determinista y no consulta proveedores externos.
 
 ## Identificación y resolución CPE
 
-La identificación de fabricante, producto y versión es opcional y declarada
-por la persona usuaria. El backend no certifica su correspondencia con un
-dispositivo real.
+La identificación de fabricante, producto y versión es opcional.
+Puede proceder de una declaración manual o de una identidad anunciada
+por el servicio.
+
+La procedencia SERVICE_RESPONSE incluye service_port y exige una observación
+aceptada con evidencia de protocolo compatible en ese puerto. El backend
+valida la coherencia de la solicitud, sin certificar que el producto anunciado
+corresponda al software instalado.
 
 Con fuentes habilitadas e identificación comparable, el flujo consulta el
 diccionario oficial de NVD mediante un filtro `cpeMatchString`.
@@ -130,9 +136,13 @@ Las pruebas automatizadas utilizan fuentes simuladas. La evidencia manual
 contra proveedores y por HTTPS se registra en
 [integración y aceptación](evaluations-external-integration.md).
 
-El recorrido completo por HTTPS se comprobó con las reglas 0.3.0,
-incluyendo una coincidencia posible y su pertenencia a KEV.
-La evidencia y las limitaciones del caso están en el documento de integración.
+El recorrido completo por HTTPS se comprobó con las reglas 0.3.0.
+El 19 de noviembre de 2026 también se confirmó la integración desde Android
+con las reglas 0.4.0, identificación anunciada por el servicio, coincidencias
+posibles y consulta de KEV.
+
+La evidencia y las limitaciones de ambos casos se conservan en el documento
+de integración y aceptación.
 Una lista vacía, una fuente indisponible o una condición inconclusa no
 acreditan que un dispositivo sea seguro.
 
