@@ -43,7 +43,7 @@ describe('Evaluation request schema', () => {
       ],
     },
     { probes: [{ port: '22', outcome: 'ERROR' }] },
-    { probes: [{ port: 21, outcome: 'ERROR' }] },
+    { probes: [{ port: 25, outcome: 'ERROR' }] },
     { probes: [{ port: 22, outcome: 'REJECTED' }] },
     { probes: [{ port: 22, outcome: 'ACCEPTED', protocol: 'SSH' }] },
     {

@@ -2,6 +2,7 @@ import { BASIC_RULE_IDS, EVALUATION_RULESET_VERSION } from './basic-rules.js';
 import { createEvaluationInput } from './evaluation-input.js';
 import type { EvaluationInput } from './evaluation-input.js';
 import type { Finding } from './finding.js';
+import { preventiveGuidance } from './preventive-guidance.js';
 import type { ProbeOutcome } from './tcp-observations.js';
 
 const INCONCLUSIVE_OUTCOMES: Record<
@@ -43,7 +44,7 @@ export function interpretBasicTcp(input: EvaluationInput): BasicInterpretation {
       findings.push({
         category: 'TCP_SERVICE_ACCESSIBLE',
         title: `Conexión TCP aceptada en el puerto ${observation.port}`,
-        priority: 'LOW',
+        priority: 'UNDETERMINED',
         confidence: 'OBSERVED',
         evidence: `El intento TCP al puerto ${observation.port} fue aceptado.`,
         explanation:
@@ -73,6 +74,8 @@ export function interpretBasicTcp(input: EvaluationInput): BasicInterpretation {
           cve: null,
         });
       }
+      const preventive = preventiveGuidance(observation);
+      if (preventive !== undefined) findings.push(preventive);
     } else {
       const rule = INCONCLUSIVE_OUTCOMES[observation.outcome];
       findings.push({

@@ -30,7 +30,7 @@ describe('Evaluation HTTP mapping', () => {
     ).execute(input);
     const response = toEvaluationResponse(result);
     expect(response).toMatchObject({
-      ruleset_version: '0.3.0',
+      ruleset_version: '0.4.0',
       evaluated_at: '2026-11-11T00:00:00.000Z',
       sources: { nvd: 'NOT_QUERIED', kev: 'NOT_QUERIED', checked_at: null },
       possible_cve_matches: [],
