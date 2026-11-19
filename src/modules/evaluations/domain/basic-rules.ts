@@ -1,6 +1,8 @@
+import policy from './preventive-rules.json' with { type: 'json' };
+
 /** Published ruleset shared by both evaluation endpoints. */
-export const EVALUATION_RULESET_VERSION = '0.3.0';
-export const EVALUATION_RULESET_PUBLISHED_AT = '2026-11-15T08:56:16Z';
+export const EVALUATION_RULESET_VERSION = policy.version;
+export const EVALUATION_RULESET_PUBLISHED_AT = policy.published_at;
 
 export const BASIC_RULE_IDS = {
   accepted: 'TCP_ACCEPTED',

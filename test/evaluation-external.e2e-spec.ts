@@ -221,13 +221,45 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
         cve,
         category: 'POSSIBLE_CVE_MATCH',
         confidence: 'POSSIBLE',
-        priority: 'UNDETERMINED',
+        priority: 'HIGH',
         rule_id: 'NVD_POSSIBLE_MATCH',
       }),
     );
     expect(second.body.sources).toEqual(first.body.sources);
     expect(second.body.possible_cve_matches).toEqual(
       first.body.possible_cve_matches,
+    );
+    const observed = await request(app.getHttpServer())
+      .post('/evaluations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        probes: [
+          {
+            port: 80,
+            outcome: 'ACCEPTED',
+            protocol: 'HTTP',
+            evidence_kind: 'HTTP_RESPONSE',
+          },
+        ],
+        identification: {
+          vendor: 'Example',
+          product: 'Device',
+          version: '1',
+          source: 'SERVICE_RESPONSE',
+          service_port: 80,
+        },
+      })
+      .expect(200);
+    expect(observed.body.possible_cve_matches[0]).toMatchObject({
+      identification_source: 'SERVICE_RESPONSE',
+      service_port: 80,
+      in_kev: true,
+    });
+    expect(observed.body.findings).toContainEqual(
+      expect.objectContaining({
+        category: 'PREVENTIVE_REVIEW',
+        rule_id: 'PREVENTIVE_HTTP',
+      }),
     );
     expect(fetcher).toHaveBeenCalledTimes(3);
     const url = fetcher.mock.calls[0][0];
@@ -246,7 +278,7 @@ describe('Evaluación externa integrada sin proveedores reales', () => {
     );
     expect(fetcher).toHaveBeenCalledTimes(3);
     const rules = await request(app.getHttpServer()).get('/rules').expect(200);
-    expect(first.body.ruleset_version).toBe('0.3.0');
+    expect(first.body.ruleset_version).toBe('0.4.0');
     expect(rules.body.ruleset_version).toBe(first.body.ruleset_version);
   });
 

@@ -41,22 +41,46 @@ const text = (max: number) =>
     .string()
     .regex(/\S/u)
     .refine((value) => Array.from(value).length <= max);
-const identification = z.strictObject({
+const identificationFields = {
   vendor: text(80),
   product: text(120),
   version: text(80),
-  source: z.enum(['USER_DEVICE_LABEL', 'USER_ADMIN_PANEL']),
-});
+};
+const identification = z.union([
+  z.strictObject({
+    ...identificationFields,
+    source: z.enum(['USER_DEVICE_LABEL', 'USER_ADMIN_PANEL']),
+  }),
+  z.strictObject({
+    ...identificationFields,
+    source: z.literal('SERVICE_RESPONSE'),
+    service_port: port,
+  }),
+]);
 
-export const evaluationSchema = z.strictObject({
-  probes: z
-    .array(probe)
-    .min(1)
-    .max(MAX_PROBES_PER_EVALUATION)
-    .refine(
-      (probes) =>
-        new Set(probes.map(({ port: value }) => value)).size === probes.length,
-    ),
-  identification: identification.optional(),
-});
+export const evaluationSchema = z
+  .strictObject({
+    probes: z
+      .array(probe)
+      .min(1)
+      .max(MAX_PROBES_PER_EVALUATION)
+      .refine(
+        (probes) =>
+          new Set(probes.map(({ port: value }) => value)).size ===
+          probes.length,
+      ),
+    identification: identification.optional(),
+  })
+  .refine((body) => {
+    const identity = body.identification;
+    return (
+      identity?.source !== 'SERVICE_RESPONSE' ||
+      body.probes.some(
+        (probe) =>
+          probe.port === identity.service_port &&
+          probe.outcome === 'ACCEPTED' &&
+          'protocol' in probe,
+      )
+    );
+  });
 export type EvaluationBody = z.infer<typeof evaluationSchema>;

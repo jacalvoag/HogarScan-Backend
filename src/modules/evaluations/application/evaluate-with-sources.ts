@@ -169,19 +169,26 @@ export class EvaluateWithSources {
         possibleCveMatches: matches,
         findings: [
           ...basic.findings,
-          ...matches.map(({ cve, affectedCondition }) =>
+          ...matches.map(({ cve, affectedCondition, inKev, identification }) =>
             createFinding({
               category: 'POSSIBLE_CVE_MATCH',
               title: `Posible coincidencia con ${cve}`,
-              priority: 'UNDETERMINED',
+              priority: inKev === true ? 'HIGH' : 'MEDIUM',
               confidence: 'POSSIBLE',
-              evidence: affectedCondition,
+              evidence:
+                affectedCondition +
+                (identification.servicePort === undefined
+                  ? ''
+                  : ` Identidad anunciada en el puerto ${identification.servicePort}.`) +
+                (inKev === true
+                  ? ' La CVE figura en el catálogo KEV consultado; se prioriza su revisión.'
+                  : ''),
               explanation:
                 'NVD publica una condición compatible con la identificación declarada.',
               action:
                 'Contrastar el modelo y la versión con el aviso del fabricante y revisar si hay una actualización.',
               limitation:
-                'La identificación es declarada. Solo se evaluaron configuraciones CPE de NVD; no se interpretaron los datos adicionales de affected. La coincidencia no confirma que el dispositivo sea vulnerable.',
+                'La identidad procede de una declaración o de lo que anuncia el servicio y no se verificó independientemente. Solo se evaluaron configuraciones CPE de NVD; no se interpretaron los datos adicionales de affected. La prioridad es de revisión, no una medida de explotabilidad; la coincidencia no confirma que el dispositivo sea vulnerable.',
               ruleId: 'NVD_POSSIBLE_MATCH',
               cve,
             }),

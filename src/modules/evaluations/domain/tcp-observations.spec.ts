@@ -28,7 +28,7 @@ describe('TCP observations', () => {
       evidenceKind: 'HTTP_RESPONSE';
     }>().not.toExtend<TcpObservation>();
     expectTypeOf<{
-      port: 21;
+      port: 25;
       outcome: 'ACCEPTED';
     }>().not.toExtend<TcpObservation>();
   });
@@ -48,7 +48,9 @@ describe('TCP observations', () => {
       { port: 3389, outcome: 'REFUSED' },
     ];
 
-    expect(observations.map(({ port }) => port)).toEqual([...PILOT_PORTS]);
+    expect(observations.map(({ port }) => port)).toEqual(
+      [...PILOT_PORTS].filter((port) => port !== 21),
+    );
     expect(createTcpObservations(observations)).toEqual(observations);
   });
 

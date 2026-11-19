@@ -41,7 +41,19 @@ export function toEvaluationInput(body: EvaluationBody): EvaluationInput {
   });
   return body.identification === undefined
     ? { observations }
-    : { observations, identification: body.identification };
+    : {
+        observations,
+        identification:
+          body.identification.source === 'SERVICE_RESPONSE'
+            ? {
+                vendor: body.identification.vendor,
+                product: body.identification.product,
+                version: body.identification.version,
+                source: body.identification.source,
+                servicePort: body.identification.service_port,
+              }
+            : body.identification,
+      };
 }
 
 export function toEvaluationResponse(result: EvaluationResult) {
@@ -63,6 +75,9 @@ export function toEvaluationResponse(result: EvaluationResult) {
       product: match.identification.product,
       version: match.identification.version,
       identification_source: match.identification.source,
+      ...(match.identification.servicePort === undefined
+        ? {}
+        : { service_port: match.identification.servicePort }),
       affected_condition: match.affectedCondition,
       nvd_url: `https://nvd.nist.gov/vuln/detail/${match.cve}`,
       nvd_checked_at: match.nvdCheckedAt.toISOString(),

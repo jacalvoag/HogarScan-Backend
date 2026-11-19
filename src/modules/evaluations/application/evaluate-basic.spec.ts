@@ -8,7 +8,7 @@ describe('EvaluateBasic', () => {
       observations: [{ port: 22, outcome: 'TIMEOUT' }],
     });
     expect(result).toMatchObject({
-      rulesetVersion: '0.3.0',
+      rulesetVersion: '0.4.0',
       evaluatedAt: date,
       sources: { nvd: 'NOT_QUERIED', kev: 'NOT_QUERIED', checkedAt: null },
       possibleCveMatches: [],

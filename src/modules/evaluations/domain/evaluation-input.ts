@@ -15,8 +15,19 @@ export function createEvaluationInput(input: EvaluationInput): EvaluationInput {
     return { observations };
   }
 
-  return {
-    observations,
-    identification: createProductIdentification(input.identification),
-  };
+  const identification = createProductIdentification(input.identification);
+  if (
+    identification.source === 'SERVICE_RESPONSE' &&
+    !observations.some(
+      (probe) =>
+        probe.port === identification.servicePort &&
+        probe.outcome === 'ACCEPTED' &&
+        probe.protocol !== undefined,
+    )
+  ) {
+    throw new Error(
+      'Service identification must refer to an accepted, identified observation',
+    );
+  }
+  return { observations, identification };
 }

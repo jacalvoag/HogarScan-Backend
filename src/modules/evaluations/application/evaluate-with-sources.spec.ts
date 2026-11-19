@@ -51,6 +51,40 @@ describe('evaluación con fuentes externas', () => {
     loadKev: vi.fn(),
   });
 
+  it.each([true, false, null] as const)(
+    'prioriza la revisión con pertenencia KEV %s sin afirmar explotación del equipo',
+    async (membership) => {
+      const source = sourceMocks();
+      source.searchCve.mockResolvedValue({
+        value: [nvdCandidate('CVE-2021-41773')],
+        obtainedAt: at,
+      });
+      if (membership === null)
+        source.loadKev.mockRejectedValue(
+          new ExternalSourceError('UNAVAILABLE'),
+        );
+      else
+        source.loadKev.mockResolvedValue({
+          value: { contains: () => membership },
+          obtainedAt: at,
+        });
+      const result = await new EvaluateWithSources(
+        basic,
+        source,
+        config,
+      ).execute(input, signal());
+      const finding = result.findings.find(
+        (item) => item.cve === 'CVE-2021-41773',
+      );
+      expect(finding).toMatchObject({
+        priority: membership === true ? 'HIGH' : 'MEDIUM',
+        confidence: 'POSSIBLE',
+      });
+      expect(finding?.limitation).toContain('no una medida de explotabilidad');
+      expect(result.possibleCveMatches[0].inKev).toBe(membership);
+    },
+  );
+
   it('evita consultas con fuentes deshabilitadas o sin datos comparables', async () => {
     const source = sourceMocks();
     const disabled = new EvaluateWithSources(basic, source, {

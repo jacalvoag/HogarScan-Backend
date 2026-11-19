@@ -65,7 +65,7 @@ describe('Basic TCP interpretation', () => {
       const result = interpretBasicTcp({
         observations: [{ port: 80, outcome: 'ACCEPTED', ...evidence }],
       });
-      expect(result.findings).toHaveLength(2);
+      expect(result.findings).toHaveLength(3);
       expect(result.findings[1]).toMatchObject({
         category: 'PROTOCOL_IDENTIFIED',
         confidence: 'OBSERVED',
@@ -85,7 +85,7 @@ describe('Basic TCP interpretation', () => {
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatchObject({
       category: 'TCP_SERVICE_ACCESSIBLE',
-      priority: 'LOW',
+      priority: 'UNDETERMINED',
       confidence: 'OBSERVED',
       ruleId: 'TCP_ACCEPTED',
       cve: null,

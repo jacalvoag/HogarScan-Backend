@@ -1,4 +1,4 @@
-export const PILOT_PORTS = [22, 23, 80, 443, 445, 3389] as const;
+export const PILOT_PORTS = [21, 22, 23, 80, 443, 445, 3389] as const;
 export const MAX_PROBES_PER_EVALUATION = 6;
 
 export type PilotPort = (typeof PILOT_PORTS)[number];
