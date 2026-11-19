@@ -90,8 +90,8 @@ explotado.
 - `POST /evaluations` requiere sesión, valida estrictamente la solicitud y
   responde con `Cache-Control: no-store`.
 
-Ambos endpoints comparten la versión `0.3.0` y la fecha fija de publicación
-`2026-11-15T08:56:16Z`, definidas en `basic-rules.ts`.
+Ambos endpoints comparten la versión `0.4.0` y la fecha fija de publicación
+`2026-11-19T16:00:00Z`, definidas en `preventive-rules.json` y expuestas por `basic-rules.ts`.
 
 Los límites actuales por IP y ruta son 60 solicitudes por minuto para
 `GET /rules` y 600 para `POST /evaluations`. Estos límites HTTP no representan
@@ -145,3 +145,21 @@ acreditan que un dispositivo sea seguro.
 - [NISTIR 7698: condiciones de aplicabilidad](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7698.pdf).
 - [NISTIR 7695: nombres CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7695.pdf).
 - [NISTIR 7696: comparación CPE](https://nvlpubs.nist.gov/nistpubs/legacy/ir/nistir7696.pdf).
+
+## Reglas 0.4.0: orientación y evidencia de servicio
+
+El móvil obtiene respuestas acotadas y envía protocol/evidence_kind sin banners.
+FTP en 21 forma parte de las siete opciones, conservando seis pruebas por lote.
+La identidad SERVICE_RESPONSE incluye service_port, que debe corresponder a una
+observación aceptada e identificada. No certifica autenticidad: un servicio puede
+anunciar otro producto. Las identificaciones manuales no se atribuyen a puertos.
+
+preventive-rules.json conserva versión, fecha y orientaciones preventivas. El
+número de puerto solo orienta con certeza POSSIBLE cuando el protocolo no está
+identificado. Las prioridades son de revisión: una coincidencia sustentada en NVD
+recibe MEDIUM y KEV positivo la eleva a HIGH. No equivalen a CVSS, probabilidad de
+ataque ni explotación del objetivo. KEV falso o desconocido no rebaja el hallazgo
+a seguro. Se conservan referencias, fechas y degradación por fallos de fuentes.
+
+Desplegar esta API antes del móvil que utiliza SERVICE_RESPONSE. Las pruebas
+HTTP verifican también esa procedencia y la conservación de service_port.
