@@ -38,9 +38,13 @@ o el catálogo validado, aplica TTL y límites de entradas y bytes, y conserva
 la fecha de obtención. La desconexión cancela la consulta en curso. El
 presupuesto abarca la espera, consulta y procesamiento.
 
-`GET /rules` y `POST /evaluations` comparten la versión `0.3.0` por la incorporación
-de la regla `NVD_POSSIBLE_MATCH`. La fecha de la versión es fija y la respuesta
-usa los campos y estados de OpenAPI existentes.
+GET /rules y POST /evaluations comparten la versión 0.4.0.
+Esta versión incorpora evidencia de servicio, identificación SERVICE_RESPONSE
+asociada a service_port y orientaciones preventivas versionadas.
+
+La fecha de publicación es fija. Los campos y estados se describen en OpenAPI.
+Los apartados históricos de aceptación conservan la versión utilizada en cada
+comprobación.
 
 ## Despliegue y configuración
 
@@ -161,5 +165,32 @@ Se conservan las comprobaciones de estado, condiciones, negaciones,
 requisitos desconocidos y rangos de versión no soportados. `affected`
 por sí solo no genera coincidencias.
 
-La aceptación positiva del recorrido desplegado sigue pendiente hasta
-repetir y comprobar la prueba por HTTPS con esta versión.
+## Aceptación integrada con las reglas 0.4.0
+
+El 19 de noviembre de 2026 se comprobó manualmente el recorrido desde la
+aplicación Android hacia la API desplegada, con las reglas 0.4.0.
+
+El servicio de prueba anunció Apache/2.4.49 mediante una respuesta HTTP.
+El móvil normalizó la identidad como apache/http_server/2.4.49, con procedencia
+SERVICE_RESPONSE y service_port 80.
+
+La evaluación mostró NVD y KEV disponibles y estas coincidencias posibles:
+
+| CVE            | Pertenencia al catálogo KEV consultado | Prioridad |
+| -------------- | -------------------------------------- | --------- |
+| CVE-2021-41773 | Incluida                               | Alta      |
+| CVE-2021-42013 | Incluida                               | Alta      |
+| CVE-2021-41524 | No encontrada                          | Media     |
+
+La aplicación conservó las referencias, fechas, procedencia de la identidad
+y limitaciones de las coincidencias. El resultado se guardó localmente y su
+resumen se sincronizó con la cuenta.
+
+También se comprobaron FTP y SSH identificados sin producto y versión
+suficientes, con NVD y KEV no consultadas. Una conexión TCP aceptada en 443
+sin identificación de protocolo conservó esos estados de fuentes.
+
+Las comprobaciones con el teléfono fueron manuales y fueron confirmadas
+por el responsable de las pruebas. El anuncio Apache era simulado:
+la correlación no acredita la instalación del producto ni confirma
+vulnerabilidad o explotación del equipo.
