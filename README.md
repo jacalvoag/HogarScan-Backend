@@ -205,9 +205,14 @@ en exitoso.
 
 También se dispone de conservación y limpieza de versiones instaladas.
 
-`develop` es la rama de integración y despliegue de desarrollo. La
-promoción de una versión estable a `main` requiere coordinar los cambios
-del workflow y de la confianza OIDC.
+`develop` es la rama de integración y `main` contiene la entrega estable.
+Ambas ramas y sus Pull Requests ejecutan las verificaciones de CI.
+Solo los pushes a `main` activan el despliegue automático, después de
+superar la validación. Los cambios en `develop` no actualizan la instancia.
+
+La confianza OIDC del rol de despliegue debe autorizar exclusivamente
+`main`, según `deploy/iam/github-deploy-trust.json`. Modificar ese archivo
+no actualiza por sí mismo la política aplicada en AWS IAM.
 
 Las direcciones, credenciales y parámetros particulares de cada entorno
 se administran fuera de este documento.
@@ -242,8 +247,9 @@ limitaciones se documentan por separado.
 ## Contribución
 
 El trabajo se organiza mediante ramas por bloque funcional, con varios
-commits pequeños y coherentes por rama. Los Pull Requests se dirigen a
-`develop`.
+commits pequeños y coherentes por rama. Los Pull Requests de trabajo se
+dirigen a `develop`; las promociones estables se realizan mediante un
+Pull Request de `develop` hacia `main`.
 
 Los cambios al contrato público, al esquema de base de datos, a componentes
 compartidos o a la infraestructura se coordinan antes de implementarse.
