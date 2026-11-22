@@ -44,7 +44,15 @@ Actualiza la base antes de comenzar y vuelve a comprobarla antes de
 integrar. No reescribas ramas compartidas ni resuelvas conflictos
 descartando cambios ajenos sin revisarlos.
 
-La promoción de `develop` a `main` se coordina como parte de la entrega.
+La promoción de `develop` a `main` se realiza mediante un Pull Request
+como parte de la entrega, conservando los commits de desarrollo.
+Solo los pushes a `main` despliegan automáticamente a la instancia.
+`develop` y los Pull Requests ejecutan CI sin desplegar.
+
+Antes de una promoción que cambie la rama de despliegue, comprueba que
+la confianza OIDC aplicada en AWS IAM coincida con la rama autorizada
+en `deploy/iam/github-deploy-trust.json`. El archivo del repositorio
+no modifica IAM automáticamente.
 
 ## Commits y alcance
 

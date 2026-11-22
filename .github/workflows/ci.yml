@@ -86,9 +86,9 @@ jobs:
           compression-level: 0
 
   deploy:
-    name: Deploy development API
+    name: Deploy stable API
     needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
