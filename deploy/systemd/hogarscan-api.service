@@ -1,0 +1,31 @@
+[Unit]
+Description=HogarScan API
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=hogarscan
+Group=hogarscan
+WorkingDirectory=/opt/hogarscan/current
+EnvironmentFile=/etc/hogarscan/api.env
+ExecStart=/usr/local/bin/node /opt/hogarscan/current/dist/main.js
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictSUIDSGID=true
+CapabilityBoundingSet=
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hogarscan-api
+
+[Install]
+WantedBy=multi-user.target

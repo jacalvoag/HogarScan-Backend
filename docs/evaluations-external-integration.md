@@ -1,0 +1,196 @@
+# Integración de fuentes externas de evaluaciones
+
+Con fuentes habilitadas, la evaluación usa fabricante, producto y versión
+declarados para construir un filtro de búsqueda `cpeMatchString` en NVD. El
+filtro cubre todas las clases de CPE y evita que títulos o enlaces determinen
+la asociación. Solo se permiten campos literales del subconjunto CPE
+implementado. El CPE que se usa en la búsqueda CVE proviene del diccionario
+oficial. Véase la [documentación del filtro de NVD](https://nvd.nist.gov/developers/products).
+
+La búsqueda completa debe devolver un solo registro vigente. Fabricante y
+producto deben coincidir sin distinguir mayúsculas, y la versión debe coincidir
+carácter por carácter. En los siete atributos restantes solo se acepta
+`*` (ANY). Un `-` (NA) o un valor específico requiere información adicional
+y deja la resolución inconclusa. Los alias, variantes, registros obsoletos y
+sintaxis no soportada también quedan inconclusos. Esto permite una asociación
+provisional con el CPE para evaluar condiciones publicadas. La identidad sigue
+siendo declarada.
+
+La búsqueda CVE también debe completar su paginación. Solo se emite un hallazgo
+`POSSIBLE_CVE_MATCH` si se satisface una configuración con al menos un criterio
+vulnerable positivo. Las condiciones sobre otros componentes quedan
+desconocidas incluso bajo negación, ya que no hay un inventario del equipo.
+Los rangos de versión requieren un comparador respaldado para ese producto y
+el alcance actual se limita a condiciones que no requieren ordenar versiones.
+La lista vacía no permite concluir que el dispositivo sea seguro.
+
+Una consulta incompleta o un fallo de NVD conserva los hallazgos básicos y marca
+NVD como `UNAVAILABLE`. Una búsqueda completa sin coincidencia sustentada
+mantiene NVD en `AVAILABLE`. Ante una o más coincidencias, un catálogo KEV
+validado comprueba todas las CVE en la misma evaluación. Si falla KEV, se
+conservan las coincidencias y `in_kev` queda en `null`. Sin identificación
+comparable o con fuentes deshabilitadas, ambos estados quedan en `NOT_QUERIED`.
+
+El transporte usa destinos HTTPS fijos, sin redirecciones, con límites de
+tiempo y tamaño. Una cola y una caché se comparten por proceso entre cuentas;
+CPE y CVE comparten el intervalo NVD. La caché solo almacena páginas validadas
+o el catálogo validado, aplica TTL y límites de entradas y bytes, y conserva
+la fecha de obtención. La desconexión cancela la consulta en curso. El
+presupuesto abarca la espera, consulta y procesamiento.
+
+GET /rules y POST /evaluations comparten la versión 0.4.0.
+Esta versión incorpora evidencia de servicio, identificación SERVICE_RESPONSE
+asociada a service_port y orientaciones preventivas versionadas.
+
+La fecha de publicación es fija. Los campos y estados se describen en OpenAPI.
+Los apartados históricos de aceptación conservan la versión utilizada en cada
+comprobación.
+
+## Despliegue y configuración
+
+La integración fue revisada e incorporada a `develop` mediante el PR #33.
+La validación del backend y el despliegue automático de desarrollo finalizaron
+correctamente.
+
+Las fuentes permanecen deshabilitadas por defecto en el código. Para las
+pruebas manuales se habilitaron en el entorno de desarrollo con esta
+configuración:
+
+```env
+EXTERNAL_SOURCES_ENABLED=true
+EXTERNAL_REQUEST_TIMEOUT_MS=30000
+EXTERNAL_EVALUATION_BUDGET_MS=45000
+```
+
+El intervalo NVD se mantiene en 10000 ms, con páginas de 50 registros y un
+máximo de dos páginas por búsqueda. El presupuesto de 45000 ms se comparte
+entre las operaciones necesarias para una evaluación.
+
+## Evidencia de aceptación
+
+La revisión del PR #33 acreditó 547 pruebas unitarias y 260 pruebas HTTP
+aprobadas con fuentes simuladas, además de tipos, compilación, lint y
+validación estructural de OpenAPI.
+
+Las pruebas manuales contra proveedores comprobaron:
+
+- Consulta y validación del diccionario CPE de NVD.
+- Búsqueda CVE completa para el CPE oficial de OpenSSH 9.6 utilizado en la
+  prueba directa, con 32 candidatos validados.
+- Descarga y validación del catálogo CISA KEV.
+- Desde EC2, resolución de Apache HTTP Server 2.4.49 a un único CPE vigente
+  y compatible con el resolver.
+- Desde EC2, validación individual de las dos páginas CVE de Apache,
+  con 100 candidatos en total. Estas consultas independientes no
+  acreditan el presupuesto conjunto de una evaluación.
+
+Por HTTPS se comprobaron disponibilidad, publicación de reglas 0.2.0,
+rechazo de evaluaciones sin sesión, registro, login, evaluación básica
+y logout.
+
+Una evaluación con identificación OpenSSH ambigua devolvió NVD `AVAILABLE`
+y KEV `NOT_QUERIED`, conservó el hallazgo básico y no generó coincidencias CVE.
+
+## Indisponibilidad observada
+
+Durante el diagnóstico del flujo de Apache desde EC2, la consulta CPE
+respondió HTTP 200 y pasó la validación. La solicitud CVE posterior recibió
+HTTP 503 de NVD, sin `Retry-After`.
+
+El flujo conservó los hallazgos básicos, marcó NVD `UNAVAILABLE`, dejó KEV
+en `NOT_QUERIED` y omitió coincidencias CVE. Las evaluaciones por HTTPS
+también conservaron una respuesta válida con ese estado de indisponibilidad.
+
+El HTTP 503 observado no acredita un problema de clave API ni justifica
+aumentar los límites de paginación o añadir reintentos automáticos.
+
+## Aceptación positiva por HTTPS
+
+El 15 de noviembre de 2026 se completó la aceptación del recorrido
+HTTPS → diccionario CPE de NVD → búsqueda CVE → catálogo CISA KEV
+con las reglas 0.3.0.
+
+La prueba utilizó una identificación declarada de Apache HTTP Server 2.4.49.
+No se instaló el producto ni se escaneó un dispositivo para esta comprobación.
+
+La evaluación comenzó en `2026-11-15T09:24:24.559Z` y la solicitud HTTP
+terminó en 29430 ms, dentro del presupuesto de 45000 ms.
+
+El resultado incluyó NVD y KEV en `AVAILABLE`, cuatro hallazgos y tres
+coincidencias posibles:
+
+| CVE            | Pertenencia a KEV |
+| -------------- | ----------------- |
+| CVE-2021-41524 | false             |
+| CVE-2021-41773 | true              |
+| CVE-2021-42013 | true              |
+
+La fecha de los datos CVE utilizados fue `2026-11-15T09:24:42.213Z`.
+La fecha conjunta de fuentes fue `2026-11-15T09:24:33.050Z`, conservando
+la procedencia más antigua utilizada por la evaluación.
+
+El script de aceptación comprobó:
+
+- Disponibilidad pública por HTTPS.
+- Publicación de reglas 0.3.0.
+- Registro e inicio de sesión.
+- Coincidencia entre la versión publicada y la utilizada para evaluar.
+- Disponibilidad de ambas fuentes.
+- Presencia de CVE-2021-41773 con `in_kev=true`.
+- Hallazgo asociado con categoría `POSSIBLE_CVE_MATCH`,
+  confianza `POSSIBLE` y regla `NVD_POSSIBLE_MATCH`.
+- Advertencia explícita sobre los datos adicionales de `affected`
+  que no se interpretan.
+- Formato válido de las fechas de procedencia.
+- Cierre de sesión con HTTP 204.
+
+Esta aceptación acredita el recorrido para el caso y las condiciones
+observadas. No garantiza disponibilidad permanente de los proveedores
+ni confirma vulnerabilidades en dispositivos reales.
+
+Las pruebas previas de indisponibilidad y degradación conservan su validez.
+Una fuente no disponible o una lista vacía no demuestra que un dispositivo
+sea seguro.
+
+## Criterio de coincidencia de la versión 0.3.0
+
+La evaluación de aplicabilidad utiliza las configuraciones CPE publicadas
+por NVD. La presencia de datos adicionales en `affected` ya no impide
+automáticamente comparar una configuración soportada.
+
+Esos datos adicionales no se interpretan ni se utilizan para afirmar o
+descartar afectación. Los hallazgos comunican esta limitación.
+
+Se conservan las comprobaciones de estado, condiciones, negaciones,
+requisitos desconocidos y rangos de versión no soportados. `affected`
+por sí solo no genera coincidencias.
+
+## Aceptación integrada con las reglas 0.4.0
+
+El 19 de noviembre de 2026 se comprobó manualmente el recorrido desde la
+aplicación Android hacia la API desplegada, con las reglas 0.4.0.
+
+El servicio de prueba anunció Apache/2.4.49 mediante una respuesta HTTP.
+El móvil normalizó la identidad como apache/http_server/2.4.49, con procedencia
+SERVICE_RESPONSE y service_port 80.
+
+La evaluación mostró NVD y KEV disponibles y estas coincidencias posibles:
+
+| CVE            | Pertenencia al catálogo KEV consultado | Prioridad |
+| -------------- | -------------------------------------- | --------- |
+| CVE-2021-41773 | Incluida                               | Alta      |
+| CVE-2021-42013 | Incluida                               | Alta      |
+| CVE-2021-41524 | No encontrada                          | Media     |
+
+La aplicación conservó las referencias, fechas, procedencia de la identidad
+y limitaciones de las coincidencias. El resultado se guardó localmente y su
+resumen se sincronizó con la cuenta.
+
+También se comprobaron FTP y SSH identificados sin producto y versión
+suficientes, con NVD y KEV no consultadas. Una conexión TCP aceptada en 443
+sin identificación de protocolo conservó esos estados de fuentes.
+
+Las comprobaciones con el teléfono fueron manuales y fueron confirmadas
+por el responsable de las pruebas. El anuncio Apache era simulado:
+la correlación no acredita la instalación del producto ni confirma
+vulnerabilidad o explotación del equipo.

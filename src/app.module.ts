@@ -1,10 +1,41 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { validateEnvironment } from './config/environment.js';
+import { ApiExceptionFilter } from './shared/http/api-exception.filter.js';
+import { StrictSchemaValidationPipe } from './shared/http/strict-schema-validation.pipe.js';
+import { DatabaseModule } from './shared/database/database.module.js';
+import { AuthModule } from './modules/auth/auth.public.js';
+import { EvaluationsModule } from './modules/evaluations/evaluations.module.js';
+import { ScanSummariesModule } from './modules/scan-summaries/scan-summaries.module.js';
+import { externalSourcesConfig } from './config/external-sources.config.js';
+import { HealthModule } from './modules/health/health.module.js';
 
 @Module({
-  imports: [],
+  imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 60 }],
+    }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateEnvironment,
+      load: [externalSourcesConfig],
+    }),
+    DatabaseModule,
+    AuthModule,
+    EvaluationsModule,
+    ScanSummariesModule,
+    HealthModule,
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    ThrottlerGuard,
+    { provide: APP_FILTER, useClass: ApiExceptionFilter },
+    { provide: APP_PIPE, useClass: StrictSchemaValidationPipe },
+  ],
 })
 export class AppModule {}

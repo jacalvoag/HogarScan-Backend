@@ -17,15 +17,22 @@ info:
     revisión son UUID generados una vez por el teléfono. Las fechas son RFC 3339
     en UTC. Se rechazan propiedades adicionales en los objetos de entrada.
 
-    Estado: contrato de diseño, pendiente de implementación del backend. Esta
-    revisión no acredita endpoints desplegados. Cada cuerpo JSON admite como
+    Estado: autenticación, evaluación TCP, resúmenes e integración de NVD y
+    CISA KEV implementados. Las fuentes externas están deshabilitadas por
+    defecto y su activación depende del entorno. El recorrido completo con
+    ambas fuentes por HTTPS cuenta con una prueba de aceptación positiva
+    para las reglas 0.4.0, documentada con sus condiciones y limitaciones.
+    Una fuente indisponible conserva la interpretación básica y no equivale
+    a una búsqueda sin resultados. Cada cuerpo JSON admite como
     máximo 16384 bytes UTF-8, comprobados antes de parsearlo; los cuerpos
     comprimidos no se admiten. No se aceptan claves JSON duplicadas ni coerción
     de tipos. Los errores no incluyen tokens, contraseñas, SQL ni trazas.
     El formato de fechas de este contrato es UTC con Z y precisión máxima de
     milisegundos. Los ejemplos son ilustrativos, sin credenciales utilizables.
     Las reglas relacionales descritas requieren validación del backend además
-    de los esquemas OpenAPI. Nunca se envían secretos a NVD ni a CISA KEV.
+    de los esquemas OpenAPI. Nunca se envían credenciales de usuarios ni tokens
+    de sesión a NVD o CISA KEV. La clave propia de NVD, si se configura, se usa
+    exclusivamente para autenticar solicitudes a ese proveedor.
   x-revision-notes: [Se separan RegisterRequest y LoginRequest y se añade GET /auth/me., Se restringen resúmenes a 254 direcciones y seis puertos del piloto., DELETE /me/scans requiere
       la generación esperada para proteger reintentos., HTTPS exige HTTPS_RESPONSE; TLS_HANDSHAKE deja de ser evidencia de HTTPS., Las fechas locales se conservan aunque el reloj retroceda
       durante la revisión., Los agregados de categorías no reutilizan el máximo por revisión.]
@@ -33,8 +40,60 @@ tags:
   - {name: Acceso}
   - {name: Evaluación}
   - {name: Estadísticas}
+  - {name: Operación}
 
 paths:
+  /health/live:
+    get:
+      tags: [Operación]
+      operationId: getLiveness
+      summary: Comprobar que el proceso de la API responde.
+      description: >-
+        Ruta pública de liveness para supervisión del proceso. No consulta
+        PostgreSQL, NVD ni CISA KEV y no acredita disponibilidad de dependencias.
+      security: []
+      responses:
+        '200':
+          description: El proceso atiende solicitudes HTTP.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: {type: string, enum: [ok]}
+              example: {status: ok}
+              
+  /health/ready:
+    get:
+      tags: [Operación]
+      operationId: getReadiness
+      summary: Comprobar que la API puede consultar PostgreSQL.
+      description: >-
+        Ejecuta SELECT 1 usando el pool de la aplicación. La adquisición de una
+        conexión conserva su límite de 10 segundos y la consulta tiene un límite
+        de 1 segundo. Las solicitudes concurrentes comparten la prueba pendiente.
+        No consulta NVD ni CISA KEV ni comprueba todas las operaciones del negocio.
+      security: []
+      responses:
+        '200':
+          description: La consulta de comprobación a PostgreSQL respondió correctamente.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: {type: string, enum: [ok]}
+              example: {status: ok}
+        '503': {$ref: '#/components/responses/Unavailable'}
+              
   /auth/register:
     post:
       tags: [Acceso]
@@ -190,8 +249,8 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/RulesResponse'}
               example:
-                ruleset_version: 2026.10.1
-                published_at: '2026-10-30T12:00:00Z'
+                ruleset_version: '0.4.0'
+                published_at: '2026-11-15T08:56:16Z'
                 categories: [TCP_SERVICE_ACCESSIBLE, PROTOCOL_IDENTIFIED, PREVENTIVE_REVIEW, POSSIBLE_CVE_MATCH, INSUFFICIENT_EVIDENCE]
                 max_probes_per_evaluation: 6
                 caveat: Una conexión aceptada no prueba que exista una vulnerabilidad.
@@ -217,7 +276,7 @@ paths:
         declara la limitación. La API no hace pruebas de conexión a la LAN.
         Los nombres del contrato son REFUSED y TIMEOUT; el adaptador Android
         traduce REJECTED y TIMED_OUT respectivamente. No se deduce protocolo por
-        el número de puerto. El móvil actual puede omitir protocol/evidence_kind;
+        el número de puerto. El móvil obtiene protocol/evidence_kind cuando reconoce una respuesta compatible;
         un connect TCP por sí solo no aporta esa evidencia. La API no conserva
         estas observaciones ni las evaluaciones como inventario remoto.
       security:
@@ -235,8 +294,8 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/EvaluationResponse'}
               example:
-                ruleset_version: 2026.10.1
-                evaluated_at: '2026-10-30T16:10:00Z'
+                ruleset_version: '0.4.0'
+                evaluated_at: '2026-11-15T09:00:00Z'
                 sources: {nvd: NOT_QUERIED, kev: NOT_QUERIED, checked_at: null}
                 findings:
                   - category: TCP_SERVICE_ACCESSIBLE
@@ -387,7 +446,7 @@ paths:
                 stale:
                   value:
                     code: STALE_SUMMARY_GENERATION
-                    message: La generación ya cambió.
+                    message: El resumen pertenece a una generación de estadísticas anterior.
                     details: {current_summary_generation: 1}
                 future:
                   value:
@@ -396,6 +455,8 @@ paths:
                     details: {current_summary_generation: 1}
           headers:
             Cache-Control: {$ref: '#/components/headers/NoStore'}
+        '413': {$ref: '#/components/responses/TooLarge'}
+        '415': {$ref: '#/components/responses/UnsupportedMediaType'}
         '429': {$ref: '#/components/responses/RateLimited'}
         '500': {$ref: '#/components/responses/InternalError'}
         '503': {$ref: '#/components/responses/Unavailable'}
@@ -561,7 +622,7 @@ components:
       pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$
       description: RFC 3339 UTC con Z; entre cero y tres decimales. Se valida también la fecha de calendario.
     SummaryGeneration: {type: integer, format: int32, minimum: 0, maximum: 2147483647, description: Versión de los resúmenes de la cuenta; solo avanza al borrarlos.}
-    PilotPort: {type: integer, enum: [22, 23, 80, 443, 445, 3389], description: Puerto admitido en el piloto. El número no identifica el protocolo.}
+    PilotPort: {type: integer, enum: [21, 22, 23, 80, 443, 445, 3389], description: Puerto admitido en el piloto. El número no identifica el protocolo.}
     RegisterRequest:
       type: object
       additionalProperties: false
@@ -653,8 +714,8 @@ components:
         max_addresses_per_scan: {type: integer, enum: [254]}
         allowed_ports:
           type: array
-          minItems: 6
-          maxItems: 6
+          minItems: 7
+          maxItems: 7
           uniqueItems: true
           items: {$ref: '#/components/schemas/PilotPort'}
     FindingCategory:
@@ -726,7 +787,16 @@ components:
         vendor: {type: string, minLength: 1, maxLength: 80, pattern: \S}
         product: {type: string, minLength: 1, maxLength: 120, pattern: \S}
         version: {type: string, minLength: 1, maxLength: 80, pattern: \S}
-        source: {type: string, enum: [USER_DEVICE_LABEL, USER_ADMIN_PANEL], description: Dato declarado por el usuario; no se valida automáticamente.}
+        source: {type: string, enum: [USER_DEVICE_LABEL, USER_ADMIN_PANEL, SERVICE_RESPONSE], description: Procedencia de la identidad; incluso una respuesta del servicio puede anunciar datos incompletos o falsos.}
+        service_port: {$ref: '#/components/schemas/PilotPort'}
+      oneOf:
+        - properties:
+            source: {enum: [USER_DEVICE_LABEL, USER_ADMIN_PANEL, SERVICE_RESPONSE]}
+          not: {required: [service_port]}
+        - required: [service_port]
+          properties:
+            source: {enum: [SERVICE_RESPONSE]}
+      description: SERVICE_RESPONSE requiere que service_port corresponda a una observación ACCEPTED con protocolo y evidencia compatibles. No implica identidad certificada.
     EvaluationRequest:
       type: object
       additionalProperties: false
@@ -743,7 +813,7 @@ components:
       description: |-
         La API rechaza puertos repetidos incluso si difiere el resto del objeto;
         uniqueItems solo evita duplicados idénticos. No se envían IP ni identificadores
-        de equipo. identification es opcional y sigue siendo información declarada.
+        de equipo. identification es opcional; puede proceder de declaración manual o identidad anunciada por un servicio, sin certificación independiente.
     SourceState:
       type: string
       enum: [NOT_QUERIED, AVAILABLE, UNAVAILABLE]
@@ -805,7 +875,8 @@ components:
         vendor: {type: string, minLength: 1, maxLength: 80, pattern: \S}
         product: {type: string, minLength: 1, maxLength: 120, pattern: \S}
         version: {type: string, minLength: 1, maxLength: 80, pattern: \S}
-        identification_source: {type: string, enum: [USER_DEVICE_LABEL, USER_ADMIN_PANEL]}
+        service_port: {$ref: '#/components/schemas/PilotPort'}
+        identification_source: {type: string, enum: [USER_DEVICE_LABEL, USER_ADMIN_PANEL, SERVICE_RESPONSE]}
         affected_condition:
           type: string
           description: Condición publicada y comprobada para la versión declarada; no prueba que el dispositivo sea vulnerable.
@@ -816,6 +887,13 @@ components:
           type: boolean
           nullable: true
           description: Nulo si KEV no se consultó o falló. false indica ausencia del CVE en el catálogo consultado, no ausencia de riesgo.
+      oneOf:
+        - properties:
+            identification_source: {enum: [USER_DEVICE_LABEL, USER_ADMIN_PANEL]}
+          not: {required: [service_port]}
+        - required: [service_port]
+          properties:
+            identification_source: {enum: [SERVICE_RESPONSE]}
     EvaluationResponse:
       type: object
       additionalProperties: false

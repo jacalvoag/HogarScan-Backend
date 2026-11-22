@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListDeploymentReleases",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::hogarscan-deploy-jacalvoag-mx-central-1",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "releases/*"
+        }
+      }
+    },
+    {
+      "Sid": "ReadDeploymentReleases",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::hogarscan-deploy-jacalvoag-mx-central-1/releases/*"
+    }
+  ]
+}

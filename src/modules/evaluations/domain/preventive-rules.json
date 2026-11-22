@@ -1,0 +1,31 @@
+{
+  "version": "0.4.0",
+  "published_at": "2026-11-19T16:00:00Z",
+  "protocols": {
+    "HTTP": {
+      "priority": "MEDIUM",
+      "action": "Revisar si la página de administración requiere autenticación y ofrece HTTPS; evitar introducir credenciales por HTTP.",
+      "explanation": "Se observó HTTP sin TLS en esta conexión. Las credenciales o datos enviados sin protección podrían ser visibles para participantes de la red."
+    },
+    "FTP": {
+      "priority": "MEDIUM",
+      "action": "Desactivar FTP si no se necesita y preferir SFTP o un mecanismo de transferencia cifrado.",
+      "explanation": "Se observó una bienvenida FTP. Antes de usarlo, comprobar si ofrece protección; la bienvenida no acredita cifrado ni autenticación segura."
+    },
+    "SSH": {
+      "priority": "MEDIUM",
+      "action": "Comprobar que el acceso SSH sea necesario, restringir quién puede conectarse y revisar autenticación y actualizaciones.",
+      "explanation": "Se observó un identificador SSH. Es una interfaz de acceso remoto que merece revisar su autorización y configuración."
+    },
+    "HTTPS": {
+      "priority": "LOW",
+      "action": "Revisar autenticación, actualizaciones y necesidad del servicio aunque la conexión use TLS.",
+      "explanation": "Se recibió una respuesta HTTP tras verificar el canal TLS. Esto no certifica la seguridad de la aplicación."
+    }
+  },
+  "ports": {
+    "23": "Este puerto suele utilizarse para Telnet; confirmar el servicio y evitar administración sin cifrado.",
+    "445": "Este puerto suele utilizarse para compartir archivos SMB; revisar permisos y limitar los equipos autorizados.",
+    "3389": "Este puerto suele utilizarse para acceso remoto RDP; revisar quién puede conectarse y si realmente se necesita."
+  }
+}

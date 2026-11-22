@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "UploadDeploymentArtifacts",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:AbortMultipartUpload"],
+      "Resource": "arn:aws:s3:::hogarscan-deploy-jacalvoag-mx-central-1/releases/*",
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "true"
+        }
+      }
+    },
+    {
+      "Sid": "DeployToHogarScanInstance",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ssm:mx-central-1::document/AWS-RunShellScript",
+        "arn:aws:ec2:mx-central-1:340514595798:instance/i-0ebe58c8a7594683b"
+      ]
+    },
+    {
+      "Sid": "ReadDeploymentExecutionResult",
+      "Effect": "Allow",
+      "Action": "ssm:GetCommandInvocation",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "mx-central-1"
+        }
+      }
+    }
+  ]
+}
