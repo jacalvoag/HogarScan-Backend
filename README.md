@@ -10,6 +10,11 @@ almacena resúmenes para generar estadísticas por usuario.
 Las revisiones de red se ejecutan en el teléfono. El backend recibe las
 observaciones normalizadas y no realiza el escaneo de la red doméstica.
 
+La API aplica cabeceras HTTP de seguridad con Helmet, incluida una política CSP
+restrictiva para respuestas de API, protección frente a MIME sniffing y HSTS por
+un año. HSTS requiere que los clientes accedan por HTTPS; el proxy de producción
+termina TLS. La política no incluye subdominios.
+
 ## Funcionalidades
 
 ### Cuentas y sesiones
