@@ -5,6 +5,7 @@ import { AppModule } from './app.module.js';
 import type { Environment } from './config/environment.js';
 import { configureJsonBody } from './shared/http/configure-json-body.js';
 import { configureTrustedProxy } from './shared/http/configure-trusted-proxy.js';
+import { configureSecurityHeaders } from './shared/http/configure-security-headers.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -12,6 +13,7 @@ async function bootstrap() {
   });
 
   app.enableShutdownHooks();
+  configureSecurityHeaders(app);
   configureJsonBody(app);
 
   const config = app.get<ConfigService<Environment, true>>(ConfigService);
